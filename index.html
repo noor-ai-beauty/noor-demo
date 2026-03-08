@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>NOOR — AI Beauty Intelligence</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: #0A0907; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+    #root { min-height: 100%; display: flex; flex-direction: column; align-items: center; }
+    input { outline: none; }
+    button { outline: none; -webkit-appearance: none; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(200,168,76,0.3); border-radius: 2px; }
+    #noor-loading { position: fixed; inset: 0; background: #0A0907; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #A89880; font-family: 'DM Sans', sans-serif; z-index: 9999; }
+    #noor-loading .spinner { width: 32px; height: 32px; border: 2px solid rgba(200,168,76,0.2); border-top-color: #C8A84C; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="noor-loading"><div class="spinner"></div><p>Loading NOOR...</p></div>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+// Remove loading screen
+document.getElementById("noor-loading").style.display = "none";
+
+const T = {
+  bg:"#0A0907", surface:"rgba(255,255,255,0.04)",
+  border:"rgba(212,175,110,0.14)", borderHi:"rgba(212,175,110,0.45)",
+  gold:"#C8A84C", goldHi:"#E8C86C",
+  text:"#F0E8DC", textMid:"#A89880", textLow:"#5A4C3C",
+};
+
+// ─── EXPANDED SKU DATABASE ──────────────────────────────────────────────────
+const SKU = {
+  cleanser: [
+    {id:"LRP-TolC",brand:"La Roche-Posay",name:"Toleriane Hydrating Gentle Cleanser",price:115,halal:false,vegan:false,crueltyFree:false,targets:["sensitive","dry","dehydrated"],why:"Soap-free, restores skin barrier",rating:4.8},
+    {id:"Bioderma-SM",brand:"Bioderma",name:"Sensibio H\u2082O Micellar Water",price:85,halal:false,vegan:false,crueltyFree:false,targets:["sensitive","all"],why:"Zero-rinse ultra-gentle micellar",rating:4.9},
+    {id:"Murad-AHC",brand:"Murad",name:"AHA/BHA Exfoliating Cleanser",price:165,halal:false,vegan:false,crueltyFree:false,targets:["oily","congested","pores"],why:"Dual-acid clears congestion",rating:4.5},
+    {id:"TO-Squalane",brand:"The Ordinary",name:"Squalane Cleanser",price:55,halal:false,vegan:true,crueltyFree:true,targets:["dry","sensitive","aging"],why:"Melts makeup, maintains lipid barrier",rating:4.7},
+    {id:"Tatcha-Rice",brand:"Tatcha",name:"The Rice Wash Skin-Softening Cleanser",price:165,halal:false,vegan:false,crueltyFree:true,targets:["dry","aging","dull"],why:"Japanese rice bran + hyaluronic acid",rating:4.8},
+    {id:"DrDG-FoamC",brand:"Dr. Dennis Gross",name:"Alpha Beta Pore Perfecting Cleansing Gel",price:155,halal:false,vegan:false,crueltyFree:false,targets:["oily","pores","congested"],why:"AHA/BHA in gentle gel formula",rating:4.5},
+    {id:"Clin-Fresh",brand:"Clinique",name:"Take The Day Off Cleansing Balm",price:165,halal:false,vegan:false,crueltyFree:false,targets:["dry","sensitive","all"],why:"Melts waterproof makeup effortlessly",rating:4.8},
+    {id:"Elemis-PF",brand:"Elemis",name:"Pro-Collagen Cleansing Balm",price:265,halal:false,vegan:false,crueltyFree:false,targets:["aging","dry","sensitive"],why:"Marine-rich balm with anti-aging actives",rating:4.9},
+    {id:"Fresh-Soy",brand:"Fresh",name:"Soy Face Cleanser",price:155,halal:false,vegan:false,crueltyFree:false,targets:["sensitive","normal","all"],why:"Soy proteins + cucumber, pH-balanced",rating:4.7},
+    {id:"Kiehl-UFCC",brand:"Kiehl's",name:"Ultra Facial Cleanser",price:135,halal:false,vegan:false,crueltyFree:false,targets:["dry","normal","sensitive"],why:"24hr hydrating cleanser, no stripping",rating:4.6},
+    {id:"GA-CleanLt",brand:"Giorgio Armani",name:"Latte Detergente Cleansing Milk",price:220,halal:false,vegan:false,crueltyFree:false,targets:["dry","sensitive","dehydrated"],why:"Ultra-gentle milk cleanser for delicate skin",rating:4.6},
+    {id:"Dior-Lif",brand:"Dior",name:"Life Micellar Milk",price:245,halal:false,vegan:false,crueltyFree:false,targets:["dry","sensitive","aging"],why:"No-rinse milk with hazel seed oil",rating:4.5},
+    {id:"DE-BestNo9",brand:"Drunk Elephant",name:"Beste No. 9 Jelly Cleanser",price:195,halal:false,vegan:true,crueltyFree:true,targets:["all","oily","sensitive"],why:"pH 6.1 jelly, strips nothing",rating:4.7},
+    {id:"Sulw-Gentle",brand:"Sulwhasoo",name:"Gentle Cleansing Oil",price:210,halal:false,vegan:false,crueltyFree:false,targets:["dry","aging","all"],why:"Korean herbal oil dissolves SPF + makeup",rating:4.8},
+    {id:"Avene-Tol",brand:"Av\u00E8ne",name:"Tolerance Extremely Gentle Cleanser",price:105,halal:false,vegan:false,crueltyFree:false,targets:["sensitive","dry","dehydrated"],why:"7-ingredient formula, sterile cosmetics tech",rating:4.7},
+    {id:"Caud-VinoCl",brand:"Caudalie",name:"Vinoclean Gentle Foaming Cleanser",price:135,halal:false,vegan:true,crueltyFree:true,targets:["normal","combination","sensitive"],why:"Grape water + sage, soap-free foam",rating:4.5},
+  ],
+  toner: [
+    {id:"TO-Glycolic",brand:"The Ordinary",name:"Glycolic Acid 7% Toning Solution",price:55,halal:false,vegan:true,crueltyFree:true,targets:["dull","uneven","pores","oily"],why:"Resurfaces & brightens with weekly use",rating:4.6},
+    {id:"Laneige-CST",brand:"Laneige",name:"Cream Skin Toner & Moisturiser",price:165,halal:false,vegan:false,crueltyFree:true,targets:["dry","dehydrated","sensitive"],why:"Milky toner that doubles as light moisturiser",rating:4.7},
+    {id:"PC-BHA",brand:"Paula's Choice",name:"Skin Perfecting 2% BHA Liquid",price:175,halal:false,vegan:true,crueltyFree:true,targets:["oily","pores","congested"],why:"#1 exfoliant for blackheads & enlarged pores",rating:4.9},
+    {id:"SK2-FTE",brand:"SK-II",name:"Facial Treatment Essence",price:690,halal:false,vegan:false,crueltyFree:false,targets:["aging","dull","uneven"],why:"Pitera\u2122 ferment \u2014 cult brightening essence",rating:4.8},
+    {id:"GR-Wm-Toner",brand:"Glow Recipe",name:"Watermelon Glow PHA+BHA Toner",price:175,halal:false,vegan:true,crueltyFree:true,targets:["oily","pores","dull"],why:"Gentle PHA/BHA, no irritation",rating:4.6},
+    {id:"Tatcha-Hadasei",brand:"Tatcha",name:"The Essence Plumping Skin Softener",price:225,halal:false,vegan:false,crueltyFree:true,targets:["dehydrated","aging","all"],why:"Hadasei-3 complex, 3-second skin boost",rating:4.8},
+    {id:"Sulwhasoo-1st",brand:"Sulwhasoo",name:"First Care Activating Serum",price:390,halal:false,vegan:false,crueltyFree:false,targets:["aging","dull","uneven"],why:"5 precious herbs, Korea\u2019s #1 first step",rating:4.8},
+    {id:"Fresh-BFW",brand:"Fresh",name:"Black Tea Anti-Aging Toner",price:175,halal:false,vegan:false,crueltyFree:false,targets:["aging","dull","dry"],why:"Black tea complex firms & brightens",rating:4.6},
+    {id:"Clin-ClarL",brand:"Clinique",name:"Clarifying Lotion 2",price:115,halal:false,vegan:false,crueltyFree:false,targets:["oily","pores","congested"],why:"Dermatologist-developed exfoliating toner",rating:4.5},
+    {id:"Dior-Lif-Tn",brand:"Dior",name:"Life Sorbet Water Mist",price:200,halal:false,vegan:false,crueltyFree:false,targets:["dehydrated","dull","all"],why:"Fine mist toner with cucumber extract",rating:4.4},
+    {id:"Pixi-GlyTn",brand:"Pixi",name:"Glow Tonic",price:85,halal:false,vegan:false,crueltyFree:true,targets:["dull","uneven","pores"],why:"5% glycolic acid, ginseng + aloe vera",rating:4.6},
+    {id:"Cosrx-Snail",brand:"COSRX",name:"Advanced Snail 96 Mucin Power Essence",price:95,halal:false,vegan:false,crueltyFree:true,targets:["dry","dehydrated","sensitive","aging"],why:"96% snail mucin, deep hydration + repair",rating:4.8},
+  ],
+  serum: [
+    {id:"DE-B-Hydra",brand:"Drunk Elephant",name:"B-Hydra\u2122 Intensive Hydration Serum",price:295,halal:false,vegan:true,crueltyFree:true,targets:["dehydrated","dry","normal"],why:"Pro-vitamin B5 + pineapple ceramide",rating:4.7},
+    {id:"TO-Niac",brand:"The Ordinary",name:"Niacinamide 10% + Zinc 1%",price:45,halal:false,vegan:true,crueltyFree:true,targets:["oily","pores","uneven","pigmentation"],why:"Regulates sebum, minimises pores",rating:4.6},
+    {id:"Caudalie-VE",brand:"Caudalie",name:"Vinoperfect Radiance Serum",price:320,halal:false,vegan:true,crueltyFree:true,targets:["pigmentation","dull","uneven"],why:"Viniferine outperforms Vitamin C on dark spots",rating:4.7},
+    {id:"GR-NiaDew",brand:"Glow Recipe",name:"Watermelon Glow Niacinamide Dew Drops",price:195,halal:false,vegan:true,crueltyFree:true,targets:["dull","pigmentation","pores"],why:"Lightweight glow booster, safe for sensitive",rating:4.6},
+    {id:"TO-RetinolE",brand:"The Ordinary",name:"Retinol 0.5% in Squalane",price:65,halal:false,vegan:true,crueltyFree:true,targets:["aging","uneven","dull"],why:"Entry-level retinol, minimal irritation",rating:4.5},
+    {id:"Elem-ProOil",brand:"Elemis",name:"Pro-Collagen Marine Oil",price:340,halal:false,vegan:false,crueltyFree:false,targets:["aging","dry","firming"],why:"Padina pavonica boosts skin density",rating:4.8},
+    {id:"DrDG-VitC",brand:"Dr. Dennis Gross",name:"Vitamin C Lactic 15% Firm & Bright Serum",price:235,halal:false,vegan:false,crueltyFree:false,targets:["dull","pigmentation","aging"],why:"Lactic + Vitamin C, brightens + exfoliates",rating:4.6},
+    {id:"Murad-RapidR",brand:"Murad",name:"Rapid Resurfacing Retinol Serum",price:295,halal:false,vegan:false,crueltyFree:false,targets:["aging","uneven","dull"],why:"Retinol + AHA, clinically tested",rating:4.5},
+    {id:"Kiehl-Midnight",brand:"Kiehl's",name:"Midnight Recovery Concentrate",price:275,halal:false,vegan:false,crueltyFree:false,targets:["dry","aging","sensitive"],why:"Lavender + primrose oil overnight repair",rating:4.7},
+    {id:"Perricone-VitC",brand:"Perricone MD",name:"Vitamin C Ester Brightening Serum",price:345,halal:false,vegan:false,crueltyFree:false,targets:["pigmentation","aging","dull"],why:"Stabilised Vitamin C Ester, non-irritating",rating:4.6},
+    {id:"Sunday-CEO",brand:"Sunday Riley",name:"C.E.O. 15% Vitamin C Brightening Serum",price:320,halal:false,vegan:true,crueltyFree:true,targets:["dull","pigmentation","aging"],why:"THD Ascorbate \u2014 most stable Vitamin C",rating:4.7},
+    {id:"Sisley-EclaSer",brand:"Sisley",name:"Ecological Compound Advanced Formula",price:650,halal:false,vegan:false,crueltyFree:false,targets:["aging","dry","sensitive"],why:"8 plant extracts, renews skin\u2019s natural balance",rating:4.9},
+    {id:"GA-CremaN",brand:"Giorgio Armani",name:"Crema Nera Extrema Serum",price:580,halal:false,vegan:false,crueltyFree:false,targets:["aging","firming","dry"],why:"Pantelleria obsidian mineral complex",rating:4.8},
+    {id:"TO-HA",brand:"The Ordinary",name:"Hyaluronic Acid 2% + B5",price:45,halal:false,vegan:true,crueltyFree:true,targets:["dehydrated","dry","all"],why:"Multi-weight hyaluronic acid, instant plump",rating:4.7},
+    {id:"DE-TLC",brand:"Drunk Elephant",name:"T.L.C. Framboos Glycolic Night Serum",price:395,halal:false,vegan:true,crueltyFree:true,targets:["dull","pores","uneven","oily"],why:"12% AHA/BHA blend, resurfaces overnight",rating:4.7},
+    {id:"Estee-ANR",brand:"Est\u00E9e Lauder",name:"Advanced Night Repair Serum",price:395,halal:false,vegan:false,crueltyFree:false,targets:["aging","dry","all"],why:"Chronolux\u2122 Power Signal Tech, 8hr repair cycle",rating:4.8},
+    {id:"Lancome-Gen",brand:"Lanc\u00F4me",name:"Advanced G\u00E9nifique Youth Activating Serum",price:420,halal:false,vegan:false,crueltyFree:false,targets:["aging","dull","all"],why:"Microbiome science, 10M probiotic fractions",rating:4.7},
+    {id:"Skinceuticals-CE",brand:"SkinCeuticals",name:"C E Ferulic Antioxidant Serum",price:650,halal:false,vegan:false,crueltyFree:false,targets:["pigmentation","aging","dull"],why:"Gold standard Vitamin C, 15% L-ascorbic acid",rating:4.9},
+    {id:"LaMer-Conc",brand:"La Mer",name:"The Concentrate",price:1400,halal:false,vegan:false,crueltyFree:false,targets:["sensitive","dry","aging"],why:"Miracle Broth\u2122 concentrate, barrier rescue",rating:4.8},
+    {id:"Cosrx-SnailSer",brand:"COSRX",name:"Advanced Snail Radiance Dual Essence",price:110,halal:false,vegan:false,crueltyFree:true,targets:["dull","dehydrated","sensitive"],why:"Snail mucin + niacinamide, glow + hydration",rating:4.7},
+  ],
+  moisturiser: [
+    {id:"Laneige-WB",brand:"Laneige",name:"Water Bank Blue Hyaluronic Moisturiser",price:185,halal:false,vegan:false,crueltyFree:true,targets:["dehydrated","dry"],why:"Blue HA complex, 72hr hydration",rating:4.8},
+    {id:"Tatcha-DW",brand:"Tatcha",name:"The Dewy Skin Cream",price:280,halal:false,vegan:false,crueltyFree:true,targets:["dehydrated","dry","dull"],why:"Triple-hyaluronic acid + Japanese superfoods",rating:4.9},
+    {id:"LRP-Tol",brand:"La Roche-Posay",name:"Toleriane Double Repair Moisturiser",price:140,halal:false,vegan:false,crueltyFree:false,targets:["sensitive","dry"],why:"Ceramides + Niacinamide, derm recommended",rating:4.7},
+    {id:"LaM-Creme",brand:"La Mer",name:"The Moisturising Cream",price:1050,halal:false,vegan:false,crueltyFree:false,targets:["aging","dry"],why:"Miracle Broth\u2122, ultimate luxury repair",rating:4.8},
+    {id:"Elem-ProC",brand:"Elemis",name:"Pro-Collagen Marine Cream",price:395,halal:false,vegan:false,crueltyFree:false,targets:["aging","dry","firming"],why:"Clinically proven to reduce fine lines in 14 days",rating:4.8},
+    {id:"GR-AvocC",brand:"Glow Recipe",name:"Avocado Ceramide Recovery Cream",price:215,halal:false,vegan:true,crueltyFree:true,targets:["dry","sensitive","barrier"],why:"Barrier-repair ceramide + avocado complex",rating:4.7},
+    {id:"Belif-Aqua",brand:"Belif",name:"The True Cream Aqua Bomb",price:195,halal:false,vegan:false,crueltyFree:false,targets:["oily","combination","dehydrated"],why:"Oil-free gel-cream, 26-herb formula",rating:4.6},
+    {id:"Kiehl-UF",brand:"Kiehl's",name:"Ultra Facial Cream",price:185,halal:false,vegan:false,crueltyFree:false,targets:["dry","normal","all"],why:"24hr hydration, Squalane + Glacial Glycoprotein",rating:4.7},
+    {id:"DrDG-Oily",brand:"Dr. Dennis Gross",name:"Oil Free Moisturiser with Hyaluronic Acid",price:195,halal:false,vegan:false,crueltyFree:false,targets:["oily","combination"],why:"Mattifying HA moisturiser, oil-free",rating:4.5},
+    {id:"Fresh-BTWC",brand:"Fresh",name:"Black Tea Firming & Smoothing Cream",price:285,halal:false,vegan:false,crueltyFree:false,targets:["aging","firming","dry"],why:"Black tea ferment + blackberry extract",rating:4.7},
+    {id:"Sisley-Ecol",brand:"Sisley",name:"Sisle\u00FFa L\u2019Int\u00E9gral Anti-\u00C2ge Cream",price:995,halal:false,vegan:false,crueltyFree:false,targets:["aging","dry","firming"],why:"Global anti-aging, luxury formula",rating:4.9},
+    {id:"DE-Protini",brand:"Drunk Elephant",name:"Protini\u2122 Polypeptide Cream",price:350,halal:false,vegan:true,crueltyFree:true,targets:["aging","firming","all"],why:"Signal peptides + amino acids, protein boost",rating:4.7},
+    {id:"Clin-MoisSurge",brand:"Clinique",name:"Moisture Surge 100H Auto-Replenishing",price:195,halal:false,vegan:false,crueltyFree:false,targets:["dehydrated","dry","sensitive"],why:"Activated aloe water, 100hr hydration",rating:4.7},
+    {id:"CT-Magic",brand:"Charlotte Tilbury",name:"Magic Cream Moisturiser",price:340,halal:false,vegan:false,crueltyFree:false,targets:["dry","aging","dull"],why:"BioNymph peptide complex, instant glow",rating:4.7},
+    {id:"Sulw-Conc",brand:"Sulwhasoo",name:"Concentrated Ginseng Renewing Cream",price:890,halal:false,vegan:false,crueltyFree:false,targets:["aging","firming","dry"],why:"Korean red ginseng, 60-year cultivation",rating:4.9},
+    {id:"Cosrx-SnailCr",brand:"COSRX",name:"Advanced Snail 92 All-in-One Cream",price:85,halal:false,vegan:false,crueltyFree:true,targets:["dry","sensitive","dehydrated","all"],why:"92% snail mucin, lightweight all-rounder",rating:4.8},
+    {id:"Avene-Hydr",brand:"Av\u00E8ne",name:"Hydrance Aqua-Gel",price:125,halal:false,vegan:false,crueltyFree:false,targets:["sensitive","dehydrated","oily"],why:"Thermal spring water gel, non-comedogenic",rating:4.6},
+    {id:"Dior-Capture",brand:"Dior",name:"Capture Totale Super Potent Rich Cream",price:480,halal:false,vegan:false,crueltyFree:false,targets:["aging","dry","firming"],why:"Longoza flower, total age-defying rich cream",rating:4.7},
+  ],
+  spf: [
+    {id:"SG-Unseen",brand:"Supergoop!",name:"Unseen Sunscreen SPF 40",price:195,halal:false,vegan:true,crueltyFree:true,targets:["all","oily"],why:"Invisible finish, perfect under makeup",rating:4.8},
+    {id:"LRP-UV",brand:"La Roche-Posay",name:"Anthelios UVMune 400 SPF 50+",price:165,halal:false,vegan:false,crueltyFree:false,targets:["all","sensitive"],why:"Broadest UVA protection available",rating:4.9},
+    {id:"Tatcha-Sn",brand:"Tatcha",name:"The Silk Sunscreen SPF 50+",price:195,halal:false,vegan:false,crueltyFree:true,targets:["dry","aging","dull"],why:"Blurs pores + antioxidant-rich silk extracts",rating:4.7},
+    {id:"SG-Play",brand:"Supergoop!",name:"Play Everyday Lotion SPF 50",price:175,halal:false,vegan:true,crueltyFree:true,targets:["all"],why:"Reef-safe, water-resistant 80 min",rating:4.8},
+    {id:"Murad-SPF",brand:"Murad",name:"City Skin Age Defense Broad Spectrum SPF 50",price:195,halal:false,vegan:false,crueltyFree:false,targets:["aging","pigmentation","all"],why:"Protects + fights pollution + UV",rating:4.6},
+    {id:"Avene-SPF",brand:"Av\u00E8ne",name:"Cleanance Very High Protection SPF 50+",price:145,halal:false,vegan:false,crueltyFree:false,targets:["oily","sensitive"],why:"Matte finish for oily/acne-prone skin",rating:4.7},
+    {id:"SkinCeut-UV",brand:"SkinCeuticals",name:"Ultra Facial UV Defense SPF 50",price:230,halal:false,vegan:false,crueltyFree:false,targets:["all","sensitive"],why:"100% mineral, suitable for post-procedure",rating:4.7},
+    {id:"DE-Umbra",brand:"Drunk Elephant",name:"Umbra Sheer Physical Daily Defense SPF 30",price:195,halal:false,vegan:true,crueltyFree:true,targets:["sensitive","dry","all"],why:"100% non-nano zinc oxide, no white cast",rating:4.5},
+    {id:"Dior-UV",brand:"Dior",name:"Prestige Light-in-White UV Shield SPF 50+",price:350,halal:false,vegan:false,crueltyFree:false,targets:["pigmentation","aging","dull"],why:"Rose de Granville, brightening SPF",rating:4.6},
+    {id:"Sulw-SPF",brand:"Sulwhasoo",name:"UV Wise Brightening Multi Protector SPF 50+",price:210,halal:false,vegan:false,crueltyFree:false,targets:["pigmentation","dull","all"],why:"Korean ginseng + brightening UV protection",rating:4.5},
+    {id:"Sisley-SPF",brand:"Sisley",name:"Sunleya GE SPF 50+",price:620,halal:false,vegan:false,crueltyFree:false,targets:["aging","dry","all"],why:"Anti-aging solar care, Edelweiss extract",rating:4.8},
+  ],
+  treatment: [
+    {id:"TO-Peeling",brand:"The Ordinary",name:"AHA 30% + BHA 2% Peeling Solution",price:55,halal:false,vegan:true,crueltyFree:true,targets:["dull","pores","uneven","oily"],why:"10-min weekly peel, visible in 1 use",rating:4.5},
+    {id:"DrDG-ABPeel",brand:"Dr. Dennis Gross",name:"Alpha Beta Universal Daily Peel",price:195,halal:false,vegan:false,crueltyFree:false,targets:["aging","dull","uneven"],why:"2-step AHA/BHA peel, visible in 1 use",rating:4.6},
+    {id:"TO-RetA",brand:"The Ordinary",name:"Retinoid 5% in Squalane",price:75,halal:false,vegan:true,crueltyFree:true,targets:["aging","uneven","dull"],why:"Stronger retinoid alternative, encapsulated",rating:4.4},
+    {id:"Glow-Retinol",brand:"Glow Recipe",name:"Retinol + Niacinamide Anti-Aging Night Serum",price:245,halal:false,vegan:true,crueltyFree:true,targets:["aging","uneven"],why:"Stabilised retinol with soothing niacinamide",rating:4.7},
+    {id:"Murad-HA",brand:"Murad",name:"Retinal ReSculpt Overnight Treatment",price:395,halal:false,vegan:false,crueltyFree:false,targets:["aging","firming","uneven"],why:"Retinal (retinaldehyde) \u2014 stronger than retinol",rating:4.6},
+    {id:"Sunday-GoodG",brand:"Sunday Riley",name:"Good Genes All-in-One Lactic Acid Treatment",price:375,halal:false,vegan:true,crueltyFree:true,targets:["dull","uneven","aging","pigmentation"],why:"Lactic acid + licorice, instant clarity",rating:4.8},
+    {id:"DE-Babyfacial",brand:"Drunk Elephant",name:"Sukari Babyfacial 25% AHA + 2% BHA",price:395,halal:false,vegan:true,crueltyFree:true,targets:["dull","pores","uneven","aging"],why:"25% AHA blend, pro-grade resurfacing",rating:4.6},
+    {id:"Tatcha-Violet",brand:"Tatcha",name:"Violet-C Radiance Mask",price:295,halal:false,vegan:false,crueltyFree:true,targets:["dull","pigmentation","aging"],why:"Japanese Beautyberry + Vitamin C, 10-min mask",rating:4.7},
+    {id:"Sisley-Black",brand:"Sisley",name:"Black Rose Cream Mask",price:590,halal:false,vegan:false,crueltyFree:false,targets:["dry","aging","dull"],why:"Black rose + plumping cushion, instant radiance",rating:4.9},
+    {id:"Lancome-Visc",brand:"Lanc\u00F4me",name:"Visionnaire Crescendo Progressive Night Peel",price:290,halal:false,vegan:false,crueltyFree:false,targets:["dull","uneven","pores"],why:"2-phase peel: gentle phase 1, potent phase 2",rating:4.5},
+  ],
+  eyeCream: [
+    {id:"Sunday-AutoC",brand:"Sunday Riley",name:"Auto Correct Brightening + Depuffing Eye Cream",price:245,halal:false,vegan:true,crueltyFree:true,targets:["aging","dull"],why:"Caffeine + Lutein for bright eyes",rating:4.6},
+    {id:"Kiehl-Avo",brand:"Kiehl's",name:"Creamy Eye Treatment with Avocado",price:175,halal:false,vegan:false,crueltyFree:false,targets:["dry","dehydrated"],why:"Avocado oil, rich hydration for eye area",rating:4.7},
+    {id:"Estee-ANR-Eye",brand:"Est\u00E9e Lauder",name:"Advanced Night Repair Eye Supercharged Gel-Cr\u00E8me",price:295,halal:false,vegan:false,crueltyFree:false,targets:["aging","dull","all"],why:"Chronolux\u2122 tech, reduces lines + dark circles",rating:4.7},
+    {id:"LaMer-Eye",brand:"La Mer",name:"The Eye Concentrate",price:950,halal:false,vegan:false,crueltyFree:false,targets:["aging","dry","firming"],why:"Miracle Broth\u2122 + marine peptides",rating:4.8},
+    {id:"DE-ShaBa",brand:"Drunk Elephant",name:"Shaba Complex Firming Eye Serum",price:350,halal:false,vegan:true,crueltyFree:true,targets:["aging","firming"],why:"Copper peptides + black tea ferment, firms",rating:4.5},
+    {id:"CT-MagicEye",brand:"Charlotte Tilbury",name:"Magic Eye Rescue Cream",price:280,halal:false,vegan:false,crueltyFree:false,targets:["aging","dry","dull"],why:"Retinol + vitamin C, winter cherry extract",rating:4.6},
+    {id:"Sisley-Eye",brand:"Sisley",name:"Sisle\u00FFa L\u2019Int\u00E9gral Anti-\u00C2ge Eye & Lip Contour",price:750,halal:false,vegan:false,crueltyFree:false,targets:["aging","firming","dry"],why:"Lindera + Persian Acacia, total eye area care",rating:4.8},
+    {id:"Clinique-AAE",brand:"Clinique",name:"All About Eyes",price:155,halal:false,vegan:false,crueltyFree:false,targets:["sensitive","dehydrated","all"],why:"Botanical de-puffer, lightweight eye cream",rating:4.5},
+  ],
+};
+
+const SKIN_GRAD=["#F5D580","#E0B368","#C4944A","#9A7656","#6B4F36","#4A2510"];
+
+// skinTypes array: which skin types this foundation suits
+// finishType: "hydrating" (radiant/dewy/luminous), "balanced" (satin/natural), "mattifying" (matte)
+// This drives the skin-type matching logic
+const FOUNDATIONS=[
+  // ── FENTY BEAUTY ────────────────────────────────────────────────────────
+  {id:"Fenty-PM-120",brand:"Fenty Beauty",name:"Pro Filt'r Soft Matte",shade:"120",hex:"#F2D5B0",undertone:"Neutral",price:210,halal:false,vegan:false,crueltyFree:false,finish:"Matte",finishType:"mattifying",coverage:"Full",skinTypes:["oily","combination"],rating:4.6},
+  {id:"Fenty-PM-180",brand:"Fenty Beauty",name:"Pro Filt'r Soft Matte",shade:"180",hex:"#D4A276",undertone:"Neutral",price:210,halal:false,vegan:false,crueltyFree:false,finish:"Matte",finishType:"mattifying",coverage:"Full",skinTypes:["oily","combination"],rating:4.6},
+  {id:"Fenty-PM-290",brand:"Fenty Beauty",name:"Pro Filt'r Soft Matte",shade:"290",hex:"#C48E5C",undertone:"Warm",price:210,halal:false,vegan:false,crueltyFree:false,finish:"Matte",finishType:"mattifying",coverage:"Full",skinTypes:["oily","combination"],rating:4.6},
+  {id:"Fenty-PM-385",brand:"Fenty Beauty",name:"Pro Filt'r Soft Matte",shade:"385",hex:"#9A6E42",undertone:"Warm",price:210,halal:false,vegan:false,crueltyFree:false,finish:"Matte",finishType:"mattifying",coverage:"Full",skinTypes:["oily","combination"],rating:4.6},
+  {id:"Fenty-PM-445",brand:"Fenty Beauty",name:"Pro Filt'r Soft Matte",shade:"445",hex:"#6B4226",undertone:"Warm",price:210,halal:false,vegan:false,crueltyFree:false,finish:"Matte",finishType:"mattifying",coverage:"Full",skinTypes:["oily","combination"],rating:4.6},
+  {id:"Fenty-HF-180",brand:"Fenty Beauty",name:"Eaze Drop Blurring Skin Tint",shade:"6",hex:"#D4A882",undertone:"Neutral",price:175,halal:false,vegan:false,crueltyFree:false,finish:"Natural",finishType:"balanced",coverage:"Light",skinTypes:["normal","dry","sensitive","combination"],rating:4.5},
+  {id:"Fenty-HF-290",brand:"Fenty Beauty",name:"Eaze Drop Blurring Skin Tint",shade:"11",hex:"#C49068",undertone:"Warm",price:175,halal:false,vegan:false,crueltyFree:false,finish:"Natural",finishType:"balanced",coverage:"Light",skinTypes:["normal","dry","sensitive","combination"],rating:4.5},
+
+  // ── NARS ─────────────────────────────────────────────────────────────────
+  {id:"NARS-SG-Deau",brand:"NARS",name:"Sheer Glow",shade:"Deauville",hex:"#E8C8A4",undertone:"Neutral",price:240,halal:false,vegan:false,crueltyFree:true,finish:"Radiant",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","normal","sensitive"],rating:4.7},
+  {id:"NARS-SG-Barc",brand:"NARS",name:"Sheer Glow",shade:"Barcelona",hex:"#D9A988",undertone:"Warm",price:240,halal:false,vegan:false,crueltyFree:true,finish:"Radiant",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","normal","sensitive"],rating:4.7},
+  {id:"NARS-SG-Syra",brand:"NARS",name:"Sheer Glow",shade:"Syracuse",hex:"#C08860",undertone:"Warm",price:240,halal:false,vegan:false,crueltyFree:true,finish:"Radiant",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","normal","sensitive"],rating:4.7},
+  {id:"NARS-SG-Mala",brand:"NARS",name:"Sheer Glow",shade:"Malabar",hex:"#8A5E38",undertone:"Warm",price:240,halal:false,vegan:false,crueltyFree:true,finish:"Radiant",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","normal","sensitive"],rating:4.7},
+  {id:"NARS-NR-Gobi",brand:"NARS",name:"Natural Radiant Longwear",shade:"Gobi",hex:"#E8C4A2",undertone:"Neutral",price:250,halal:false,vegan:false,crueltyFree:true,finish:"Radiant",finishType:"hydrating",coverage:"Medium-Full",skinTypes:["normal","dry","combination"],rating:4.8},
+  {id:"NARS-NR-Vanu",brand:"NARS",name:"Natural Radiant Longwear",shade:"Vanuatu",hex:"#C89A70",undertone:"Warm",price:250,halal:false,vegan:false,crueltyFree:true,finish:"Radiant",finishType:"hydrating",coverage:"Medium-Full",skinTypes:["normal","dry","combination"],rating:4.8},
+
+  // ── MAC ──────────────────────────────────────────────────────────────────
+  {id:"MAC-FB-C3",brand:"MAC",name:"Face and Body",shade:"C3",hex:"#E0BE96",undertone:"Warm",price:195,halal:false,vegan:false,crueltyFree:false,finish:"Natural",finishType:"hydrating",coverage:"Light-Medium",skinTypes:["dry","normal","sensitive"],rating:4.7},
+  {id:"MAC-FB-C5",brand:"MAC",name:"Face and Body",shade:"C5",hex:"#D4A882",undertone:"Warm",price:195,halal:false,vegan:false,crueltyFree:false,finish:"Natural",finishType:"hydrating",coverage:"Light-Medium",skinTypes:["dry","normal","sensitive"],rating:4.7},
+  {id:"MAC-FB-C7",brand:"MAC",name:"Face and Body",shade:"C7",hex:"#B88A60",undertone:"Warm",price:195,halal:false,vegan:false,crueltyFree:false,finish:"Natural",finishType:"hydrating",coverage:"Light-Medium",skinTypes:["dry","normal","sensitive"],rating:4.7},
+  {id:"MAC-SPC-NW25",brand:"MAC",name:"Studio Perfect SPF 15",shade:"NW25",hex:"#D8AA80",undertone:"Warm",price:215,halal:false,vegan:false,crueltyFree:false,finish:"Natural",finishType:"balanced",coverage:"Medium",skinTypes:["normal","combination"],rating:4.5},
+  {id:"MAC-SPC-NC42",brand:"MAC",name:"Studio Perfect SPF 15",shade:"NC42",hex:"#C49464",undertone:"Warm",price:215,halal:false,vegan:false,crueltyFree:false,finish:"Natural",finishType:"balanced",coverage:"Medium",skinTypes:["normal","combination"],rating:4.5},
+
+  // ── EST\u00C9E LAUDER ───────────────────────────────────────────────────────
+  {id:"EL-DW-2W1",brand:"Est\u00E9e Lauder",name:"Double Wear Stay-in-Place",shade:"2W1 Dawn",hex:"#E0BC92",undertone:"Warm",price:225,halal:false,vegan:false,crueltyFree:false,finish:"Matte",finishType:"mattifying",coverage:"Full",skinTypes:["oily","combination"],rating:4.7},
+  {id:"EL-DW-3W2",brand:"Est\u00E9e Lauder",name:"Double Wear Stay-in-Place",shade:"3W2 Cashew",hex:"#D4A276",undertone:"Warm",price:225,halal:false,vegan:false,crueltyFree:false,finish:"Matte",finishType:"mattifying",coverage:"Full",skinTypes:["oily","combination"],rating:4.7},
+  {id:"EL-DW-4N2",brand:"Est\u00E9e Lauder",name:"Double Wear Stay-in-Place",shade:"4N2 Spiced Sand",hex:"#C49264",undertone:"Neutral",price:225,halal:false,vegan:false,crueltyFree:false,finish:"Matte",finishType:"mattifying",coverage:"Full",skinTypes:["oily","combination"],rating:4.7},
+  {id:"EL-DW-5W2",brand:"Est\u00E9e Lauder",name:"Double Wear Stay-in-Place",shade:"5W2 Rich Caramel",hex:"#9A7248",undertone:"Warm",price:225,halal:false,vegan:false,crueltyFree:false,finish:"Matte",finishType:"mattifying",coverage:"Full",skinTypes:["oily","combination"],rating:4.7},
+  {id:"EL-FI-2W0",brand:"Est\u00E9e Lauder",name:"Futurist Hydra Rescue",shade:"2W0 Warm Vanilla",hex:"#E2BE94",undertone:"Warm",price:260,halal:false,vegan:false,crueltyFree:false,finish:"Radiant",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","sensitive","normal","dehydrated"],rating:4.6},
+  {id:"EL-FI-3N1",brand:"Est\u00E9e Lauder",name:"Futurist Hydra Rescue",shade:"3N1 Ivory Beige",hex:"#D4A882",undertone:"Neutral",price:260,halal:false,vegan:false,crueltyFree:false,finish:"Radiant",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","sensitive","normal","dehydrated"],rating:4.6},
+
+  // ── YSL ──────────────────────────────────────────────────────────────────
+  {id:"YSL-AH-BD50",brand:"Yves Saint Laurent",name:"All Hours Foundation",shade:"BD50",hex:"#E0B88A",undertone:"Warm",price:295,halal:false,vegan:false,crueltyFree:false,finish:"Matte",finishType:"mattifying",coverage:"Full",skinTypes:["oily","combination"],rating:4.5},
+  {id:"YSL-AH-BD70",brand:"Yves Saint Laurent",name:"All Hours Foundation",shade:"BD70",hex:"#D9A988",undertone:"Warm",price:295,halal:false,vegan:false,crueltyFree:false,finish:"Satin",finishType:"balanced",coverage:"Medium",skinTypes:["combination","normal"],rating:4.5},
+  {id:"YSL-TE-BD40",brand:"Yves Saint Laurent",name:"Touche \u00C9clat Le Teint",shade:"BD40",hex:"#E2C09A",undertone:"Warm",price:310,halal:false,vegan:false,crueltyFree:false,finish:"Luminous",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","normal","sensitive"],rating:4.6},
+  {id:"YSL-TE-BD65",brand:"Yves Saint Laurent",name:"Touche \u00C9clat Le Teint",shade:"BD65",hex:"#C8986C",undertone:"Warm",price:310,halal:false,vegan:false,crueltyFree:false,finish:"Luminous",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","normal","sensitive"],rating:4.6},
+
+  // ── CHARLOTTE TILBURY ───────────────────────────────────────────────────
+  {id:"CT-BS-4",brand:"Charlotte Tilbury",name:"Beautiful Skin Foundation",shade:"4 Medium",hex:"#E0B890",undertone:"Neutral",price:300,halal:false,vegan:false,crueltyFree:false,finish:"Luminous",finishType:"hydrating",coverage:"Medium-Full",skinTypes:["dry","normal","sensitive","dehydrated"],rating:4.7},
+  {id:"CT-BS-6",brand:"Charlotte Tilbury",name:"Beautiful Skin Foundation",shade:"6 Medium",hex:"#D4A578",undertone:"Neutral",price:300,halal:false,vegan:false,crueltyFree:false,finish:"Luminous",finishType:"hydrating",coverage:"Medium-Full",skinTypes:["dry","normal","sensitive","dehydrated"],rating:4.7},
+  {id:"CT-BS-8",brand:"Charlotte Tilbury",name:"Beautiful Skin Foundation",shade:"8 Medium Deep",hex:"#C09060",undertone:"Warm",price:300,halal:false,vegan:false,crueltyFree:false,finish:"Luminous",finishType:"hydrating",coverage:"Medium-Full",skinTypes:["dry","normal","sensitive","dehydrated"],rating:4.7},
+  {id:"CT-AW-6",brand:"Charlotte Tilbury",name:"Airbrush Flawless Foundation",shade:"6 Neutral",hex:"#D4A578",undertone:"Neutral",price:290,halal:false,vegan:false,crueltyFree:false,finish:"Matte",finishType:"mattifying",coverage:"Full",skinTypes:["oily","combination"],rating:4.6},
+
+  // ── LAURA MERCIER ───────────────────────────────────────────────────────
+  {id:"LM-FF-Vanl",brand:"Laura Mercier",name:"Flawless Lumiere Radiance",shade:"Vanille",hex:"#E2C298",undertone:"Neutral",price:245,halal:false,vegan:false,crueltyFree:true,finish:"Radiant",finishType:"hydrating",coverage:"Medium-Full",skinTypes:["dry","normal","sensitive"],rating:4.6},
+  {id:"LM-FF-GoBe",brand:"Laura Mercier",name:"Flawless Lumiere Radiance",shade:"Golden Beige",hex:"#D4A56C",undertone:"Warm",price:245,halal:false,vegan:false,crueltyFree:true,finish:"Radiant",finishType:"hydrating",coverage:"Medium-Full",skinTypes:["dry","normal","sensitive"],rating:4.6},
+  {id:"LM-FF-Chst",brand:"Laura Mercier",name:"Flawless Lumiere Radiance",shade:"Chestnut",hex:"#A07848",undertone:"Warm",price:245,halal:false,vegan:false,crueltyFree:true,finish:"Radiant",finishType:"hydrating",coverage:"Medium-Full",skinTypes:["dry","normal","sensitive"],rating:4.6},
+  {id:"LM-TM-3W1",brand:"Laura Mercier",name:"Tinted Moisturiser",shade:"3W1 Bisque",hex:"#D8AE84",undertone:"Warm",price:195,halal:false,vegan:false,crueltyFree:true,finish:"Natural",finishType:"hydrating",coverage:"Light",skinTypes:["dry","sensitive","dehydrated","normal"],rating:4.8},
+
+  // ── GIORGIO ARMANI ──────────────────────────────────────────────────────
+  {id:"GA-LS-5.5",brand:"Giorgio Armani",name:"Luminous Silk",shade:"5.5",hex:"#D8A880",undertone:"Neutral",price:285,halal:false,vegan:false,crueltyFree:false,finish:"Radiant",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","normal","sensitive","combination"],rating:4.9},
+  {id:"GA-LS-6.5",brand:"Giorgio Armani",name:"Luminous Silk",shade:"6.5",hex:"#C8986A",undertone:"Warm",price:285,halal:false,vegan:false,crueltyFree:false,finish:"Radiant",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","normal","sensitive","combination"],rating:4.9},
+  {id:"GA-LS-8",brand:"Giorgio Armani",name:"Luminous Silk",shade:"8",hex:"#B08050",undertone:"Warm",price:285,halal:false,vegan:false,crueltyFree:false,finish:"Radiant",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","normal","sensitive","combination"],rating:4.9},
+  {id:"GA-LS-10",brand:"Giorgio Armani",name:"Luminous Silk",shade:"10",hex:"#8A6038",undertone:"Warm",price:285,halal:false,vegan:false,crueltyFree:false,finish:"Radiant",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","normal","sensitive","combination"],rating:4.9},
+
+  // ── DIOR ─────────────────────────────────────────────────────────────────
+  {id:"Dior-FF-3W",brand:"Dior",name:"Forever Skin Glow",shade:"3W Warm",hex:"#E0BA90",undertone:"Warm",price:275,halal:false,vegan:false,crueltyFree:false,finish:"Radiant",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","normal","sensitive"],rating:4.7},
+  {id:"Dior-FF-4N",brand:"Dior",name:"Forever Skin Glow",shade:"4N Neutral",hex:"#D4A678",undertone:"Neutral",price:275,halal:false,vegan:false,crueltyFree:false,finish:"Radiant",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","normal","sensitive"],rating:4.7},
+  {id:"Dior-FF-5W",brand:"Dior",name:"Forever Skin Glow",shade:"5W Warm",hex:"#C09060",undertone:"Warm",price:275,halal:false,vegan:false,crueltyFree:false,finish:"Radiant",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","normal","sensitive"],rating:4.7},
+  {id:"Dior-FM-3W",brand:"Dior",name:"Forever Matte",shade:"3W Warm",hex:"#E0BA90",undertone:"Warm",price:275,halal:false,vegan:false,crueltyFree:false,finish:"Matte",finishType:"mattifying",coverage:"Full",skinTypes:["oily","combination"],rating:4.6},
+  {id:"Dior-FM-5W",brand:"Dior",name:"Forever Matte",shade:"5W Warm",hex:"#C09060",undertone:"Warm",price:275,halal:false,vegan:false,crueltyFree:false,finish:"Matte",finishType:"mattifying",coverage:"Full",skinTypes:["oily","combination"],rating:4.6},
+
+  // ── TOM FORD ────────────────────────────────────────────────────────────
+  {id:"TF-TL-5.5",brand:"Tom Ford",name:"Traceless Soft Matte",shade:"5.5 Bisque",hex:"#D8A880",undertone:"Neutral",price:410,halal:false,vegan:false,crueltyFree:false,finish:"Matte",finishType:"mattifying",coverage:"Full",skinTypes:["oily","combination"],rating:4.5},
+  {id:"TF-TL-7.7",brand:"Tom Ford",name:"Traceless Soft Matte",shade:"7.7 Honey",hex:"#C49060",undertone:"Warm",price:410,halal:false,vegan:false,crueltyFree:false,finish:"Matte",finishType:"mattifying",coverage:"Full",skinTypes:["oily","combination"],rating:4.5},
+  {id:"TF-SC-5.5",brand:"Tom Ford",name:"Shade and Illuminate Soft Radiance",shade:"5.5 Bisque",hex:"#D8A880",undertone:"Neutral",price:450,halal:false,vegan:false,crueltyFree:false,finish:"Radiant",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","normal","sensitive"],rating:4.7},
+
+  // ── BOBBI BROWN ─────────────────────────────────────────────────────────
+  {id:"BB-SS-Sand",brand:"Bobbi Brown",name:"Skin Long-Wear Weightless",shade:"Sand",hex:"#D8A880",undertone:"Neutral",price:230,halal:false,vegan:false,crueltyFree:false,finish:"Natural",finishType:"balanced",coverage:"Medium",skinTypes:["normal","combination"],rating:4.5},
+  {id:"BB-SS-Warm",brand:"Bobbi Brown",name:"Skin Long-Wear Weightless",shade:"Warm Sand",hex:"#C89868",undertone:"Warm",price:230,halal:false,vegan:false,crueltyFree:false,finish:"Natural",finishType:"balanced",coverage:"Medium",skinTypes:["normal","combination"],rating:4.5},
+  {id:"BB-VT-Sand",brand:"Bobbi Brown",name:"Vitamin Enriched Skin Tint",shade:"Medium 3",hex:"#D4A478",undertone:"Warm",price:265,halal:false,vegan:false,crueltyFree:false,finish:"Natural",finishType:"hydrating",coverage:"Light",skinTypes:["dry","sensitive","dehydrated","normal"],rating:4.6},
+
+  // ── SISLEY ──────────────────────────────────────────────────────────────
+  {id:"Sisley-PP-3",brand:"Sisley",name:"Phyto-Teint Perfection",shade:"3C Natural",hex:"#D8A880",undertone:"Neutral",price:520,halal:false,vegan:false,crueltyFree:false,finish:"Satin",finishType:"balanced",coverage:"Medium-Full",skinTypes:["normal","combination","dry"],rating:4.7},
+  {id:"Sisley-PP-5",brand:"Sisley",name:"Phyto-Teint Perfection",shade:"5W Toffee",hex:"#B88A5C",undertone:"Warm",price:520,halal:false,vegan:false,crueltyFree:false,finish:"Satin",finishType:"balanced",coverage:"Medium-Full",skinTypes:["normal","combination","dry"],rating:4.7},
+
+  // ── LA MER ──────────────────────────────────────────────────────────────
+  {id:"LaMer-SP-32",brand:"La Mer",name:"The Soft Fluid Long Wear",shade:"32 Beige",hex:"#D8AE84",undertone:"Neutral",price:580,halal:false,vegan:false,crueltyFree:false,finish:"Natural",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","sensitive","dehydrated","aging"],rating:4.7},
+  {id:"LaMer-SP-42",brand:"La Mer",name:"The Soft Fluid Long Wear",shade:"42 Tan",hex:"#C49264",undertone:"Warm",price:580,halal:false,vegan:false,crueltyFree:false,finish:"Natural",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","sensitive","dehydrated","aging"],rating:4.7},
+
+  // ── CLINIQUE ─────────────────────────────────────────────────────────────
+  {id:"Clin-EI-WN76",brand:"Clinique",name:"Even Better Clinical Serum Foundation",shade:"WN 76 Toasted Wheat",hex:"#C89868",undertone:"Warm",price:195,halal:false,vegan:false,crueltyFree:false,finish:"Natural",finishType:"balanced",coverage:"Medium-Full",skinTypes:["normal","combination","sensitive"],rating:4.5},
+  {id:"Clin-EI-CN52",brand:"Clinique",name:"Even Better Clinical Serum Foundation",shade:"CN 52 Neutral",hex:"#D4A478",undertone:"Neutral",price:195,halal:false,vegan:false,crueltyFree:false,finish:"Natural",finishType:"balanced",coverage:"Medium-Full",skinTypes:["normal","combination","sensitive"],rating:4.5},
+  {id:"Clin-MC-06",brand:"Clinique",name:"Moisture Surge Tinted Moisturiser",shade:"06 Medium",hex:"#D4A680",undertone:"Neutral",price:155,halal:false,vegan:false,crueltyFree:false,finish:"Natural",finishType:"hydrating",coverage:"Light",skinTypes:["dry","dehydrated","sensitive","normal"],rating:4.6},
+
+  // ── RARE BEAUTY ─────────────────────────────────────────────────────────
+  {id:"RB-LL-230N",brand:"Rare Beauty",name:"Liquid Touch Weightless",shade:"230N",hex:"#D8A880",undertone:"Neutral",price:175,halal:false,vegan:true,crueltyFree:true,finish:"Natural",finishType:"balanced",coverage:"Medium",skinTypes:["normal","combination","dry"],rating:4.7},
+  {id:"RB-LL-330W",brand:"Rare Beauty",name:"Liquid Touch Weightless",shade:"330W",hex:"#C49060",undertone:"Warm",price:175,halal:false,vegan:true,crueltyFree:true,finish:"Natural",finishType:"balanced",coverage:"Medium",skinTypes:["normal","combination","dry"],rating:4.7},
+  {id:"RB-LL-430W",brand:"Rare Beauty",name:"Liquid Touch Weightless",shade:"430W",hex:"#A07040",undertone:"Warm",price:175,halal:false,vegan:true,crueltyFree:true,finish:"Natural",finishType:"balanced",coverage:"Medium",skinTypes:["normal","combination","dry"],rating:4.7},
+
+  // ── TOO FACED ───────────────────────────────────────────────────────────
+  {id:"TF-BTW-NatBe",brand:"Too Faced",name:"Born This Way",shade:"Natural Beige",hex:"#D8A880",undertone:"Neutral",price:190,halal:false,vegan:false,crueltyFree:true,finish:"Natural",finishType:"balanced",coverage:"Medium-Full",skinTypes:["normal","combination"],rating:4.5},
+  {id:"TF-BTW-Mocha",brand:"Too Faced",name:"Born This Way",shade:"Mocha",hex:"#8A6038",undertone:"Warm",price:190,halal:false,vegan:false,crueltyFree:true,finish:"Natural",finishType:"balanced",coverage:"Medium-Full",skinTypes:["normal","combination"],rating:4.5},
+
+  // ── HOURGLASS ───────────────────────────────────────────────────────────
+  {id:"HG-VL-Sand",brand:"Hourglass",name:"Vanish Seamless Finish Liquid",shade:"Sand",hex:"#D8AE84",undertone:"Neutral",price:310,halal:false,vegan:true,crueltyFree:true,finish:"Matte",finishType:"mattifying",coverage:"Full",skinTypes:["oily","combination"],rating:4.5},
+  {id:"HG-VL-Amb",brand:"Hourglass",name:"Vanish Seamless Finish Liquid",shade:"Amber",hex:"#B88A5C",undertone:"Warm",price:310,halal:false,vegan:true,crueltyFree:true,finish:"Matte",finishType:"mattifying",coverage:"Full",skinTypes:["oily","combination"],rating:4.5},
+  {id:"HG-AW-Birch",brand:"Hourglass",name:"Ambient Soft Glow",shade:"5",hex:"#D4A478",undertone:"Neutral",price:285,halal:false,vegan:true,crueltyFree:true,finish:"Luminous",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","normal","sensitive"],rating:4.7},
+
+  // ── PAT MCGRATH ─────────────────────────────────────────────────────────
+  {id:"PMG-SRF-M14",brand:"Pat McGrath Labs",name:"Skin Fetish Sublime Perfection",shade:"Medium 14",hex:"#D4A680",undertone:"Neutral",price:350,halal:false,vegan:false,crueltyFree:true,finish:"Radiant",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","normal","sensitive"],rating:4.6},
+  {id:"PMG-SRF-MD21",brand:"Pat McGrath Labs",name:"Skin Fetish Sublime Perfection",shade:"Medium Deep 21",hex:"#B88A5C",undertone:"Warm",price:350,halal:false,vegan:false,crueltyFree:true,finish:"Radiant",finishType:"hydrating",coverage:"Medium",skinTypes:["dry","normal","sensitive"],rating:4.6},
+];
+
+// ─── FOUNDATION MATCHING ALGORITHM ──────────────────────────────────────────
+// Weighted scoring: 70% shade match + 30% skin type compatibility
+function scoreFoundation(foundation, skinHex, skinTypes, skinMetrics) {
+  // 1. Shade score (0-100, inverted from distance)
+  var dist = colourDist(skinHex, foundation.hex);
+  var maxDist = 200; // practical max RGB distance
+  var shadeScore = Math.max(0, 100 - (dist / maxDist) * 100);
+
+  // 2. Skin type compatibility score (0-100)
+  var typeScore = 0;
+  var matchCount = 0;
+
+  // Check if foundation's skinTypes match detected skin types
+  for (var i = 0; i < skinTypes.length; i++) {
+    var st = skinTypes[i].toLowerCase().replace("-", "");
+    for (var j = 0; j < foundation.skinTypes.length; j++) {
+      if (foundation.skinTypes[j].toLowerCase() === st ||
+          (st === "combinationoily" && (foundation.skinTypes[j] === "oily" || foundation.skinTypes[j] === "combination")) ||
+          (st === "mature" && foundation.skinTypes[j] === "dry")) {
+        matchCount++;
+        break;
+      }
+    }
+  }
+  if (skinTypes.length > 0) {
+    typeScore += (matchCount / skinTypes.length) * 50;
+  }
+
+  // Finish type appropriateness based on skin metrics
+  if (skinMetrics.oiliness > 55 && foundation.finishType === "mattifying") typeScore += 25;
+  else if (skinMetrics.oiliness > 55 && foundation.finishType === "hydrating") typeScore -= 15;
+  else if (skinMetrics.hydration < 45 && foundation.finishType === "hydrating") typeScore += 25;
+  else if (skinMetrics.hydration < 45 && foundation.finishType === "mattifying") typeScore -= 15;
+  else if (foundation.finishType === "balanced") typeScore += 10;
+  else typeScore += 5;
+
+  // Sensitive skin penalty for full coverage (tends to be heavier formulas)
+  if (skinMetrics.sensitivity > 55 && foundation.coverage === "Full") typeScore -= 10;
+  if (skinMetrics.sensitivity > 55 && foundation.coverage === "Light") typeScore += 10;
+
+  typeScore = Math.max(0, Math.min(100, typeScore));
+
+  // 3. Combined weighted score
+  var combined = (shadeScore * 0.7) + (typeScore * 0.3);
+
+  return {
+    total: combined,
+    shadeScore: Math.round(shadeScore),
+    typeScore: Math.round(typeScore),
+    shadeMatch: shadeScore > 80 ? "Excellent" : shadeScore > 60 ? "Good" : shadeScore > 40 ? "Fair" : "Approximate"
+  };
+}
+
+function hexToRgb(hex) {
+  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})/i.exec(hex);
+  if (!result) return [0, 0, 0];
+  return [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)];
+}
+
+function colourDist(h1, h2) {
+  var c1 = hexToRgb(h1), c2 = hexToRgb(h2);
+  return Math.sqrt(Math.pow(c1[0]-c2[0], 2) + Math.pow(c1[1]-c2[1], 2) + Math.pow(c1[2]-c2[2], 2));
+}
+
+function skinHexAt(t) {
+  var n = SKIN_GRAD.length - 1;
+  var i = Math.min(n - 1, Math.floor(t * n));
+  var f = t * n - i;
+  var c1 = hexToRgb(SKIN_GRAD[i]), c2 = hexToRgb(SKIN_GRAD[i + 1]);
+  var r = Math.round(c1[0] + (c2[0] - c1[0]) * f);
+  var g = Math.round(c1[1] + (c2[1] - c1[1]) * f);
+  var b = Math.round(c1[2] + (c2[2] - c1[2]) * f);
+  return "#" + r.toString(16).padStart(2, "0") + g.toString(16).padStart(2, "0") + b.toString(16).padStart(2, "0");
+}
+
+var depthLabel = function(t) { return t < 0.18 ? "Fair" : t < 0.35 ? "Light" : t < 0.52 ? "Medium" : t < 0.68 ? "Medium-Deep" : t < 0.83 ? "Deep" : "Rich Deep"; };
+var undertoneLabel = function(t) { return t < 0.28 ? "Cool / Pink" : t < 0.56 ? "Neutral" : t < 0.78 ? "Warm / Golden" : "Warm / Olive"; };
+
+function buildRoutine(concerns) {
+  var score = function(p) { return p.targets.filter(function(t) { return concerns.indexOf(t) >= 0 || t === "all"; }).length; };
+  return {
+    morning: [
+      {step:"Cleanse",icon:"\u25C8",note:"Use lukewarm water",products:SKU.cleanser.slice().sort(function(a,b){return score(b)-score(a);}).slice(0,3)},
+      {step:"Tone",icon:"\u25CB",note:"Pat gently, let air-dry",products:SKU.toner.slice().sort(function(a,b){return score(b)-score(a);}).slice(0,2)},
+      {step:"Serum",icon:"\u2726",note:"2\u20133 drops, press gently",products:SKU.serum.slice().sort(function(a,b){return score(b)-score(a);}).slice(0,2)},
+      {step:"Moisturise",icon:"\u25C7",note:"Lock in serums",products:SKU.moisturiser.slice().sort(function(a,b){return score(b)-score(a);}).slice(0,2)},
+      {step:"Sunscreen",icon:"\u2600",note:"Wait 15 min before makeup",products:SKU.spf.slice().sort(function(a,b){return score(b)-score(a);}).slice(0,2)},
+    ],
+    evening: [
+      {step:"Cleanse",icon:"\u25C8",note:"Remove makeup thoroughly",products:SKU.cleanser.slice().sort(function(a,b){return score(b)-score(a);}).slice(0,3)},
+      {step:"Tone",icon:"\u25CB",note:"Prep for serums",products:SKU.toner.slice().sort(function(a,b){return score(b)-score(a);}).slice(0,2)},
+      {step:"Serum",icon:"\u2726",note:"Build your routine here",products:SKU.serum.slice().sort(function(a,b){return score(b)-score(a);}).slice(0,3)},
+      {step:"Eye Cream",icon:"\u25CE",note:"Gentle pat around orbital bone",products:SKU.eyeCream.slice().sort(function(a,b){return score(b)-score(a);}).slice(0,2)},
+      {step:"Moisturise",icon:"\u25C7",note:"Rich cream for night",products:SKU.moisturiser.slice().sort(function(a,b){return score(b)-score(a);}).slice(0,3)},
+    ],
+    weekly: [
+      {step:"Treatment",icon:"\u203B",note:"1\u20132\u00D7 per week",products:SKU.treatment.slice().sort(function(a,b){return score(b)-score(a);}).slice(0,3)},
+    ],
+  };
+}
+
+// ─── ATOMS ──────────────────────────────────────────────────────────────────
+function GoldBtn(props) {
+  var children = props.children, onClick = props.onClick, ghost = props.ghost, style = props.style || {};
+  var h = useState(false), hover = h[0], setH = h[1];
+  return (
+    <button onMouseEnter={function(){setH(true);}} onMouseLeave={function(){setH(false);}} onClick={onClick}
+      style={Object.assign({
+        background: ghost ? "transparent" : "linear-gradient(135deg," + T.gold + "," + T.goldHi + "," + T.gold + ")",
+        border: ghost ? "1px solid rgba(212,175,110," + (hover ? 0.5 : 0.25) + ")" : "none",
+        borderRadius: 50, padding: ghost ? "10px 22px" : "13px 34px",
+        fontSize: 11, letterSpacing: "0.18em", fontFamily: "'DM Sans',sans-serif",
+        color: ghost ? T.gold : "#1A1208", fontWeight: 600, cursor: "pointer",
+        textTransform: "uppercase",
+        boxShadow: ghost ? "none" : "0 4px 16px rgba(200,168,76," + (hover ? 0.4 : 0.2) + ")",
+        transform: hover ? "translateY(-1px)" : "none", transition: "all 0.2s"
+      }, style)}>{children}</button>
+  );
+}
+
+function Card(props) {
+  var children = props.children, style = props.style || {}, highlight = props.highlight, onClick = props.onClick;
+  return (
+    <div onClick={onClick} style={Object.assign({
+      background: highlight ? "rgba(200,168,76,0.06)" : T.surface,
+      border: "1px solid " + (highlight ? T.borderHi : T.border),
+      borderRadius: 14, backdropFilter: "blur(10px)",
+      cursor: onClick ? "pointer" : "default", transition: "all 0.18s"
+    }, style)}>{children}</div>
+  );
+}
+
+function FilterPill(props) {
+  var label = props.label, active = props.active, onClick = props.onClick, colour = props.colour || "halal";
+  var C = {halal:{bg:"rgba(180,140,60,0.2)",bd:"rgba(200,168,76,0.4)",tx:"#D4B060"},vegan:{bg:"rgba(80,180,100,0.15)",bd:"rgba(100,180,100,0.3)",tx:"#80C880"},crueltyFree:{bg:"rgba(120,160,220,0.15)",bd:"rgba(120,160,220,0.3)",tx:"#90B8E8"}}[colour];
+  return (
+    <button onClick={onClick} style={{
+      background: active ? C.bg : "rgba(255,255,255,0.04)",
+      border: "1px solid " + (active ? C.bd : T.border),
+      borderRadius: 50, padding: "6px 14px", fontSize: 10, letterSpacing: "0.12em",
+      fontFamily: "'DM Sans',sans-serif", color: active ? C.tx : T.textMid,
+      fontWeight: active ? 600 : 400, cursor: "pointer", transition: "all 0.2s", textTransform: "uppercase"
+    }}>{label}</button>
+  );
+}
+
+function CertBadges(props) {
+  return (
+    <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
+      {props.halal && <span style={{fontSize:9,padding:"2px 6px",borderRadius:10,background:"rgba(200,168,76,0.2)",color:"#D4B060",border:"1px solid rgba(200,168,76,0.3)",letterSpacing:"0.06em",fontWeight:600}}>{"\u2726"} HALAL</span>}
+      {props.vegan && <span style={{fontSize:9,padding:"2px 6px",borderRadius:10,background:"rgba(80,180,100,0.15)",color:"#80C880",border:"1px solid rgba(80,180,100,0.25)"}}>VEGAN</span>}
+      {props.crueltyFree && <span style={{fontSize:9,padding:"2px 6px",borderRadius:10,background:"rgba(120,160,220,0.15)",color:"#90B8E8",border:"1px solid rgba(120,160,220,0.25)"}}>CF</span>}
+    </div>
+  );
+}
+
+// ─── CIRCULAR GAUGE ─────────────────────────────────────────────────────────
+function MetricGauge(props) {
+  var label = props.label, value = props.value, colour = props.colour, icon = props.icon;
+  var r = 30, circ = 2 * Math.PI * r, fill = (value / 100) * circ;
+  var status = value < 30 ? "Low" : value < 55 ? "Normal" : value < 75 ? "Moderate" : "High";
+  var statusColour = value < 30 ? "#7AAED4" : value < 55 ? "#6BBF8A" : value < 75 ? "#D4B84C" : "#D47A7A";
+  return (
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+      <div style={{position:"relative",width:74,height:74}}>
+        <svg width={74} height={74} style={{transform:"rotate(-90deg)"}}>
+          <circle cx={37} cy={37} r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={5}/>
+          <circle cx={37} cy={37} r={r} fill="none" stroke={colour} strokeWidth={5}
+            strokeDasharray={fill + " " + (circ - fill)} strokeLinecap="round"
+            style={{transition:"stroke-dasharray 1.2s ease",filter:"drop-shadow(0 0 4px " + colour + "60)"}}/>
+        </svg>
+        <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+          <span style={{fontSize:9,lineHeight:1}}>{icon}</span>
+          <span style={{fontSize:15,fontWeight:600,color:T.text,lineHeight:1.1}}>{value}</span>
+        </div>
+      </div>
+      <div style={{textAlign:"center"}}>
+        <p style={{fontSize:10,color:T.textMid,letterSpacing:"0.08em",marginBottom:1}}>{label}</p>
+        <p style={{fontSize:9,color:statusColour,fontWeight:600,letterSpacing:"0.06em"}}>{status}</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── SKIN TYPE CLASSIFICATION ────────────────────────────────────────────────
+function getSkinType(concerns, metrics) {
+  var types = [];
+  var hasDry = concerns.indexOf("dry") >= 0;
+  var hasDehydrated = concerns.indexOf("dehydrated") >= 0;
+  var hasOily = concerns.indexOf("oily") >= 0;
+  var hasSensitive = concerns.indexOf("sensitive") >= 0;
+
+  // User-selected concerns take priority for primary type
+  if (hasDry && hasOily) types.push("Combination-Dry");
+  else if (hasDry || hasDehydrated) types.push("Dry");
+  else if (hasOily && metrics.hydration < 50) types.push("Combination-Oily");
+  else if (hasOily) types.push("Oily");
+  // Fallback to metric-based classification only if user didn't specify
+  else if (metrics.oiliness > 60 && metrics.hydration < 50) types.push("Combination-Oily");
+  else if (metrics.oiliness > 65) types.push("Oily");
+  else if (metrics.hydration < 40) types.push("Dry");
+  else if (metrics.hydration > 65 && metrics.oiliness < 40) types.push("Normal");
+  else types.push("Combination");
+
+  if (hasDehydrated && types[0] !== "Dry") types.push("Dehydrated");
+  if (hasSensitive || metrics.sensitivity > 55) types.push("Sensitive");
+  if (concerns.indexOf("aging") >= 0 && metrics.firmness < 50) types.push("Mature");
+  return types;
+}
+
+// ─── PRODUCT CARD ────────────────────────────────────────────────────────────
+function MatchBadge(props) {
+  var score = props.score;
+  var bg = score >= 75 ? "rgba(107,191,138,0.2)" : score >= 55 ? "rgba(200,168,76,0.2)" : "rgba(212,122,158,0.2)";
+  var col = score >= 75 ? "#6BBF8A" : score >= 55 ? "#D4B84C" : "#D47A9E";
+  var label = score >= 75 ? "Strong Match" : score >= 55 ? "Good Match" : "Shade Only";
+  return (
+    <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:bg,color:col,fontWeight:600,letterSpacing:"0.04em"}}>{label}</span>
+  );
+}
+
+function ProductCard(props) {
+  var p = props.p, filters = props.filters, foundationHex = props.foundationHex;
+  var s = useState(false), open = s[0], setOpen = s[1];
+  if (!p) return null;
+  if (filters && ((filters.halal && !p.halal) || (filters.vegan && !p.vegan) || (filters.crueltyFree && !p.crueltyFree))) return null;
+
+  var hasScores = p.scores;
+
+  return (
+    <Card onClick={function(){setOpen(!open);}} highlight={open} style={{padding:"12px 14px",cursor:"pointer",marginBottom:6}}>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        {foundationHex
+          ? <div style={{width:36,height:36,borderRadius:8,background:foundationHex,flexShrink:0,boxShadow:"0 3px 8px rgba(0,0,0,0.4)"}}/>
+          : <div style={{width:36,height:36,borderRadius:8,flexShrink:0,background:"rgba(200,168,76,0.08)",border:"1px solid " + T.border,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:T.gold}}>{"\u25C8"}</div>
+        }
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:2,flexWrap:"wrap"}}>
+            <span style={{fontSize:9,color:T.textLow,letterSpacing:"0.1em"}}>{p.brand}</span>
+            <CertBadges halal={p.halal} vegan={p.vegan} crueltyFree={p.crueltyFree}/>
+            {hasScores && <MatchBadge score={p.scores.total}/>}
+          </div>
+          <p style={{fontSize:12,fontWeight:500,color:T.text,lineHeight:1.3}}>{p.name}{p.shade ? " \u00B7 " + p.shade : ""}</p>
+          {p.why && <p style={{fontSize:10,color:T.textLow}}>{p.why}</p>}
+          {!p.why && foundationHex && <p style={{fontSize:10,color:T.textLow}}>{p.finish} {"\u00B7"} {p.coverage} coverage {"\u00B7"} {p.skinTypes ? "Suits " + p.skinTypes.join(", ") + " skin" : ""}</p>}
+        </div>
+        <p style={{fontSize:13,color:T.gold,flexShrink:0}}>AED {p.price}</p>
+      </div>
+      {open && (
+        <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid rgba(212,175,110,0.1)"}}>
+          {p.targets && <p style={{fontSize:10,color:T.textLow}}>Targets: {p.targets.filter(function(t){return t !== "all";}).join(", ")}</p>}
+          {p.skinTypes && <p style={{fontSize:10,color:T.textLow}}>Recommended for: {p.skinTypes.join(", ")} skin</p>}
+          {foundationHex && <p style={{fontSize:10,color:T.textLow}}>Shade hex: {foundationHex.toUpperCase()} {"\u00B7"} {p.undertone} undertone</p>}
+          {foundationHex && <p style={{fontSize:10,color:T.textLow}}>Finish: {p.finish} {"\u00B7"} Coverage: {p.coverage}</p>}
+          {hasScores && (
+            <div style={{display:"flex",gap:12,marginTop:4}}>
+              <div style={{flex:1}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
+                  <span style={{fontSize:9,color:T.textLow}}>Shade match</span>
+                  <span style={{fontSize:9,color:T.textMid}}>{p.scores.shadeMatch}</span>
+                </div>
+                <div style={{height:3,background:"rgba(255,255,255,0.06)",borderRadius:2,overflow:"hidden"}}>
+                  <div style={{height:"100%",borderRadius:2,background:p.scores.shadeScore > 70 ? "#6BBF8A" : p.scores.shadeScore > 40 ? "#D4B84C" : "#D47A9E",width:p.scores.shadeScore + "%",transition:"width 0.3s"}}/>
+                </div>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
+                  <span style={{fontSize:9,color:T.textLow}}>Skin compatibility</span>
+                  <span style={{fontSize:9,color:T.textMid}}>{p.scores.typeScore}%</span>
+                </div>
+                <div style={{height:3,background:"rgba(255,255,255,0.06)",borderRadius:2,overflow:"hidden"}}>
+                  <div style={{height:"100%",borderRadius:2,background:p.scores.typeScore > 70 ? "#6BBF8A" : p.scores.typeScore > 40 ? "#D4B84C" : "#D47A9E",width:p.scores.typeScore + "%",transition:"width 0.3s"}}/>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* rating hidden from consumer view */}
+          {!p.halal && <p style={{fontSize:10,color:T.textLow,marginTop:4}}>{"\u26A0"} No halal cert {"\u00B7"} {p.vegan ? "Vegan formula \u2014 cert process only, 8\u201312 wks" : "Formula review required"}</p>}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// ─── ROUTINE STEP ────────────────────────────────────────────────────────────
+function RoutineStep(props) {
+  var step = props.step, icon = props.icon, note = props.note, products = props.products, filters = props.filters;
+  var s = useState(true), open = s[0], setOpen = s[1];
+  var visible = products.filter(function(p) {
+    return (!filters.halal || p.halal) && (!filters.vegan || p.vegan) && (!filters.crueltyFree || p.crueltyFree);
+  });
+  return (
+    <div style={{marginBottom:12}}>
+      <button onClick={function(){setOpen(!open);}} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",background:"transparent",border:"none",cursor:"pointer",padding:"8px 0",borderBottom:"1px solid rgba(212,175,110,0.1)",marginBottom:open?10:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:13}}>{icon}</span>
+          <span style={{fontSize:12,letterSpacing:"0.1em",color:T.textMid,textTransform:"uppercase",fontFamily:"'DM Sans',sans-serif"}}>{step}</span>
+          {note && <span style={{fontSize:9,color:T.textLow,fontStyle:"italic"}}>{"\u2014"} {note}</span>}
+          <span style={{fontSize:10,color:T.textLow}}>({visible.length})</span>
+        </div>
+        <span style={{fontSize:11,color:T.textLow}}>{open ? "\u25B2" : "\u25BC"}</span>
+      </button>
+      {open && <div style={{paddingLeft:4}}>
+        {visible.length === 0
+          ? <p style={{fontSize:11,color:T.textLow,padding:"8px 0"}}>No matches with current filters.</p>
+          : visible.map(function(p) { return <ProductCard key={p.id} p={p} filters={filters}/>; })
+        }
+      </div>}
+    </div>
+  );
+}
+
+// ─── QR CODE SVG ─────────────────────────────────────────────────────────────
+function QRCode() {
+  var cells = [];
+  var seed = [1,1,1,1,1,1,1,0,1,0,1,0,1,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,1,0,1,0,1,0,0,0,0,0,0,0,1,1,0,1,1,1,0,1,0,0,1,1,0,0,0,1,0,1,1,1,0,1,1,0,1,1,1,0,1,0,1,1,1,0,0,0,1,0,1,1,1,0,1,1,0,1,1,1,0,1,0,0,0,1,1,1,0,0,1,0,0,0,1,0,1,1,1,0,1,1,0,0,0,0,0,0,0,1,0,1,0,1,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,1,0,1,0,1,1,1,1,1,1,1];
+  var size = 21;
+  for (var i = 0; i < size; i++) {
+    for (var j = 0; j < size; j++) {
+      if (seed[(i * size + j) % seed.length]) cells.push({x: j, y: i});
+    }
+  }
+  return (
+    <svg width={120} height={120} viewBox={"-1 -1 " + (size + 2) + " " + (size + 2)}>
+      <rect x={-1} y={-1} width={size + 2} height={size + 2} fill="white" rx={2}/>
+      {cells.map(function(c) { return <rect key={c.x + "-" + c.y} x={c.x} y={c.y} width={0.9} height={0.9} fill="#0A0907"/>; })}
+    </svg>
+  );
+}
+
+// ─── SHELL ───────────────────────────────────────────────────────────────────
+function Shell(props) {
+  var children = props.children, center = props.center !== false, maxW = props.maxWidth || props.maxW || 540;
+  return (
+    <div style={{minHeight:"100vh",width:"100%",maxWidth:"100vw",background:T.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:center?"center":"flex-start",fontFamily:"'DM Sans',sans-serif",color:T.text,padding:center?"24px 16px":"24px 16px 100px",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"fixed",inset:0,pointerEvents:"none",background:"radial-gradient(ellipse 70% 50% at 50% -5%,rgba(200,168,76,0.09) 0%,transparent 65%)"}}/>
+      <div style={{width:"100%",maxWidth:maxW}}>{children}</div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN APP
+// ═══════════════════════════════════════════════════════════════════════════
+function NoorApp() {
+  var phaseState = useState("welcome");
+  var phase = phaseState[0], setPhase = phaseState[1];
+
+  var goalState = useState(null);
+  var goal = goalState[0], setGoal = goalState[1];
+
+  var skinPosState = useState(0.38);
+  var skinPos = skinPosState[0], setSkinPos = skinPosState[1];
+
+  var draggingState = useState(false);
+  var dragging = draggingState[0], setDragging = draggingState[1];
+
+  var concernState = useState({oily:false,dry:false,sensitive:false,dehydrated:false,pigmentation:false,pores:false,aging:false,dull:false});
+  var skinConcerns = concernState[0], setSkinConcerns = concernState[1];
+
+  var scanProgressState = useState(0);
+  var scanProgress = scanProgressState[0], setScanProgress = scanProgressState[1];
+
+  var scanStageState = useState(0);
+  var scanStage = scanStageState[0], setScanStage = scanStageState[1];
+
+  var filterState = useState({halal:false,vegan:false,crueltyFree:false});
+  var filters = filterState[0], setFilters = filterState[1];
+
+  var tabState = useState("overview");
+  var activeTab = tabState[0], setActiveTab = tabState[1];
+
+  var routineSectionState = useState("morning");
+  var routineSection = routineSectionState[0], setRoutineSection = routineSectionState[1];
+
+  var emailState = useState("");
+  var email = emailState[0], setEmail = emailState[1];
+
+  var emailSentState = useState(false);
+  var emailSent = emailSentState[0], setEmailSent = emailSentState[1];
+
+  var sliderRef = useRef(null);
+
+  var skinHex = skinHexAt(skinPos);
+  var activeConcerns = Object.entries(skinConcerns).filter(function(e) { return e[1]; }).map(function(e) { return e[0]; });
+
+  var skinMetrics = {
+    hydration: Math.round(Math.max(5, Math.min(95, 70 - skinPos * 30 + (skinConcerns.dry ? -25 : 0) + (skinConcerns.dehydrated ? -20 : 0)))),
+    oiliness: Math.round(Math.max(5, Math.min(95, 20 + skinPos * 15 + (skinConcerns.oily ? 45 : skinConcerns.dry ? -10 : 0)))),
+    sensitivity: Math.round(Math.max(5, Math.min(95, 25 + (skinConcerns.sensitive ? 55 : 0)))),
+    pigmentation: Math.round(Math.max(5, Math.min(95, 20 + skinPos * 30 + (skinConcerns.pigmentation ? 40 : 0)))),
+    pores: Math.round(Math.max(5, Math.min(95, 20 + (skinConcerns.pores ? 50 : skinConcerns.oily ? 30 : 0)))),
+    firmness: Math.round(Math.max(5, Math.min(95, 80 - skinPos * 20 - (skinConcerns.aging ? 30 : 0)))),
+  };
+
+  var skinTypes = getSkinType(activeConcerns, skinMetrics);
+  var routine = buildRoutine(activeConcerns.length ? activeConcerns : ["all"]);
+
+  var foundationMatches = FOUNDATIONS.slice()
+    .map(function(p) {
+      var scores = scoreFoundation(p, skinHex, skinTypes, skinMetrics);
+      return Object.assign({}, p, {dist: colourDist(skinHex, p.hex), scores: scores});
+    })
+    .sort(function(a, b) { return b.scores.total - a.scores.total; })
+    .filter(function(p) { return (!filters.halal || p.halal) && (!filters.vegan || p.vegan) && (!filters.crueltyFree || p.crueltyFree); })
+    .slice(0, 10);
+
+  var updatePos = function(cx) {
+    var r = sliderRef.current ? sliderRef.current.getBoundingClientRect() : null;
+    if (r) setSkinPos(Math.max(0, Math.min(1, (cx - r.left) / r.width)));
+  };
+
+  // Mouse events for slider
+  useEffect(function() {
+    var mv = function(e) { if (dragging) updatePos(e.clientX); };
+    var up = function() { setDragging(false); };
+    window.addEventListener("mousemove", mv);
+    window.addEventListener("mouseup", up);
+    return function() {
+      window.removeEventListener("mousemove", mv);
+      window.removeEventListener("mouseup", up);
+    };
+  }, [dragging]);
+
+  // Touch events for slider
+  useEffect(function() {
+    var el = sliderRef.current;
+    if (!el) return;
+    var onTouchMove = function(e) {
+      if (dragging && e.touches.length > 0) {
+        e.preventDefault();
+        updatePos(e.touches[0].clientX);
+      }
+    };
+    var onTouchEnd = function() { setDragging(false); };
+    el.addEventListener("touchmove", onTouchMove, {passive: false});
+    window.addEventListener("touchend", onTouchEnd);
+    return function() {
+      el.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [dragging]);
+
+  var runScan = function() {
+    setPhase("scan");
+    setScanProgress(0);
+    setScanStage(0);
+    [0, 18, 36, 55, 75, 100].forEach(function(v, i) {
+      setTimeout(function() { setScanProgress(v); setScanStage(i); }, i * 550);
+    });
+    setTimeout(function() { setPhase("results"); setActiveTab(goal === "foundation" ? "foundation" : "overview"); }, 3600);
+  };
+
+  var toggleFilter = function(k) { setFilters(function(p) { var n = Object.assign({}, p); n[k] = !n[k]; return n; }); };
+  var toggleConcern = function(k) { setSkinConcerns(function(p) { var n = Object.assign({}, p); n[k] = !n[k]; return n; }); };
+
+  var handleSliderStart = function(e) {
+    setDragging(true);
+    if (e.touches) {
+      updatePos(e.touches[0].clientX);
+    } else {
+      updatePos(e.clientX);
+    }
+  };
+
+  // ── WELCOME ───────────────────────────────────────────────────────────────
+  if (phase === "welcome") return (
+    <Shell>
+      <div style={{textAlign:"center"}}>
+        <div style={{display:"flex",gap:7,justifyContent:"center",marginBottom:18}}>
+          {["#F5D580","#D4A07D","#8C5038","#4A2510"].map(function(c, i) { return <div key={i} style={{width:9,height:9,borderRadius:"50%",background:c,opacity:0.7}}/>; })}
+        </div>
+        <p style={{fontSize:10,letterSpacing:"0.45em",color:T.textLow,textTransform:"uppercase",marginBottom:10}}>Powered by AI</p>
+        <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:86,fontWeight:400,letterSpacing:"0.12em",lineHeight:0.9,marginBottom:6}}>NOOR</h1>
+        <p style={{fontSize:10,letterSpacing:"0.3em",color:T.textLow,marginBottom:14}}>{"\u0646\u0648\u0631"} {"\u00B7"} Light</p>
+        <p style={{fontFamily:"'Playfair Display',serif",fontSize:18,fontStyle:"italic",fontWeight:400,color:T.textMid,marginBottom:40,lineHeight:1.6}}>Your skin, your shade, your routine.<br/>Nothing generic.</p>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:40}}>
+          {[{icon:"\u25C8",title:"Skincare",sub:"Skin quality scan\n+ full routine"},
+            {icon:"\u25CB",title:"Foundation",sub:"Shade matching\n+ undertone"}
+          ].map(function(opt) { return (
+            <Card key={opt.title} style={{padding:"18px 10px",textAlign:"center"}}>
+              <div style={{fontSize:22,color:T.gold,marginBottom:7}}>{opt.icon}</div>
+              <p style={{fontSize:13,fontWeight:500,marginBottom:3}}>{opt.title}</p>
+              <p style={{fontSize:10,color:T.textLow,lineHeight:1.5,whiteSpace:"pre-line"}}>{opt.sub}</p>
+            </Card>
+          ); })}
+        </div>
+        <GoldBtn onClick={function(){setPhase("goal");}} style={{minWidth:200}}>Begin Your Analysis</GoldBtn>
+        <p style={{fontSize:9,color:T.textLow,marginTop:22,letterSpacing:"0.2em"}}>163 SKUs {"\u00B7"} 43 BRANDS</p>
+      </div>
+    </Shell>
+  );
+
+  // ── GOAL ──────────────────────────────────────────────────────────────────
+  if (phase === "goal") return (
+    <Shell>
+      <p style={{fontSize:10,letterSpacing:"0.3em",color:T.textLow,textTransform:"uppercase",marginBottom:8,textAlign:"center"}}>Step 1 of 3</p>
+      <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:400,textAlign:"center",marginBottom:6}}>What brings you in today?</h2>
+      <p style={{fontSize:13,color:T.textMid,textAlign:"center",marginBottom:28}}>Select your primary goal {"\u2014"} all categories appear in results</p>
+      <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:32}}>
+        {[{key:"skincare",icon:"\u25C8",title:"Skincare",sub:"Skin quality scan + full routine by step"},
+          {key:"foundation",icon:"\u25CB",title:"Foundation & Colour",sub:"Spectral shade matching + undertone analysis"},
+        ].map(function(opt) { return (
+          <Card key={opt.key} highlight={goal === opt.key} onClick={function(){setGoal(goal === opt.key ? null : opt.key);}} style={{padding:"18px 20px",cursor:"pointer"}}>
+            <div style={{display:"flex",alignItems:"center",gap:12}}>
+              <div style={{width:40,height:40,borderRadius:10,flexShrink:0,background:goal === opt.key ? "linear-gradient(135deg," + T.gold + "," + T.goldHi + ")" : "rgba(255,255,255,0.05)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,color:goal === opt.key ? "#1A1208" : T.textMid,transition:"all 0.2s"}}>{opt.icon}</div>
+              <div style={{flex:1}}>
+                <p style={{fontSize:15,fontWeight:500,marginBottom:2,color:goal === opt.key ? T.goldHi : T.text}}>{opt.title}</p>
+                <p style={{fontSize:11,color:T.textMid}}>{opt.sub}</p>
+              </div>
+              {goal === opt.key && <div style={{width:20,height:20,borderRadius:"50%",background:"linear-gradient(135deg," + T.gold + "," + T.goldHi + ")",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#1A1208",fontWeight:700}}>{"\u2713"}</div>}
+            </div>
+          </Card>
+        ); })}
+      </div>
+      <div style={{display:"flex",gap:10}}>
+        <GoldBtn ghost onClick={function(){setPhase("welcome");}}>{"← Back"}</GoldBtn>
+        <GoldBtn onClick={function(){if(goal)setPhase("assess");}} style={{flex:1,opacity:goal?1:0.4}}>{"Continue →"}</GoldBtn>
+      </div>
+    </Shell>
+  );
+
+  // ── ASSESS ────────────────────────────────────────────────────────────────
+  if (phase === "assess") {
+    return (
+      <Shell center={false}>
+        <p style={{fontSize:10,letterSpacing:"0.3em",color:T.textLow,textTransform:"uppercase",marginBottom:8}}>Step 2 of 3</p>
+        <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:26,fontWeight:400,marginBottom:6}}>Tell us about your skin</h2>
+        <p style={{fontSize:12,color:T.textMid,marginBottom:24,lineHeight:1.6}}>In-store, NOOR reads this via wand sensor. For this demo, set your profile below.</p>
+
+        <Card style={{padding:"20px",marginBottom:12}}>
+          <p style={{fontSize:10,letterSpacing:"0.25em",color:T.textLow,textTransform:"uppercase",marginBottom:14}}>Skin Tone</p>
+          <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:20}}>
+            <div style={{width:58,height:58,borderRadius:"50%",background:skinHex,flexShrink:0,boxShadow:"0 6px 20px rgba(0,0,0,0.5),0 0 0 2px rgba(212,175,110,0.2)",transition:"background 0.08s"}}/>
+            <div>
+              <p style={{fontSize:18,fontFamily:"'Playfair Display',serif",fontWeight:400,marginBottom:2}}>{depthLabel(skinPos)}</p>
+              <p style={{fontSize:11,color:T.textMid}}>{undertoneLabel(skinPos)}</p>
+              <p style={{fontSize:10,color:T.textLow}}>Spectral Profile {"\u00B7"} {skinHex.toUpperCase()}</p>
+            </div>
+          </div>
+          <div ref={sliderRef}
+            onMouseDown={handleSliderStart}
+            onTouchStart={handleSliderStart}
+            style={{height:24,borderRadius:12,cursor:"pointer",background:"linear-gradient(90deg," + SKIN_GRAD.join(",") + ")",position:"relative",userSelect:"none",boxShadow:"0 3px 10px rgba(0,0,0,0.4)",touchAction:"none"}}>
+            <div style={{position:"absolute",top:"50%",transform:"translateY(-50%)",left:"calc(" + (skinPos * 100) + "% - 16px)",width:32,height:32,borderRadius:"50%",background:skinHex,border:"2.5px solid #F0E8DC",boxShadow:"0 2px 10px rgba(0,0,0,0.6)",transition:dragging?"none":"left 0.05s",cursor:"grab",pointerEvents:"none"}}/>
+          </div>
+        </Card>
+
+        <Card style={{padding:"20px",marginBottom:12}}>
+          <p style={{fontSize:10,letterSpacing:"0.25em",color:T.textLow,textTransform:"uppercase",marginBottom:12}}>Skin Concerns</p>
+          <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+            {[["oily","Oily"],["dry","Dry"],["sensitive","Sensitive"],["dehydrated","Dehydrated"],["pigmentation","Pigmentation"],["pores","Large Pores"],["aging","Anti-Aging"],["dull","Dullness"]].map(function(item) {
+              var k = item[0], lbl = item[1];
+              return (
+                <button key={k} onClick={function(){toggleConcern(k);}} style={{padding:"7px 14px",borderRadius:50,fontSize:11,letterSpacing:"0.06em",fontWeight:500,cursor:"pointer",transition:"all 0.2s",fontFamily:"'DM Sans',sans-serif",background:skinConcerns[k]?"rgba(200,168,76,0.18)":"rgba(255,255,255,0.04)",border:"1px solid " + (skinConcerns[k] ? T.borderHi : T.border),color:skinConcerns[k] ? T.goldHi : T.textMid}}>{lbl}</button>
+              );
+            })}
+          </div>
+        </Card>
+
+        <div style={{display:"flex",gap:10,marginTop:8}}>
+          <GoldBtn ghost onClick={function(){setPhase("goal");}}>{"← Back"}</GoldBtn>
+          <GoldBtn onClick={runScan} style={{flex:1}}>{"Run Scan →"}</GoldBtn>
+        </div>
+      </Shell>
+    );
+  }
+
+  // ── SCAN ──────────────────────────────────────────────────────────────────
+  if (phase === "scan") {
+    var stages = ["Initialising spectral sensor...","Reading skin depth index...","Mapping undertone profile...","Analysing skin quality metrics...","Building your routine...","Analysis complete"];
+    return (
+      <Shell>
+        <style dangerouslySetInnerHTML={{__html: "@keyframes sp{0%,100%{opacity:0;transform:scale(1)}50%{opacity:1;transform:scale(1.04)}}@keyframes sb{0%{top:8%;opacity:0}8%{opacity:1}92%{opacity:1}100%{top:88%;opacity:0}}"}}/>
+        <div style={{width:"100%",maxWidth:360,textAlign:"center"}}>
+          <p style={{fontSize:10,letterSpacing:"0.35em",color:T.textLow,textTransform:"uppercase",marginBottom:20}}>NOOR Skin Analysis</p>
+          <div style={{position:"relative",width:140,height:140,margin:"0 auto 28px"}}>
+            <div style={{width:140,height:140,borderRadius:"50%",background:skinHex,overflow:"hidden",boxShadow:"0 0 0 8px rgba(0,0,0,0.4),0 0 45px " + skinHex + "45"}}>
+              <div style={{position:"absolute",left:0,right:0,height:2,background:"linear-gradient(90deg,transparent,#D4AF6E,#F0D090,#D4AF6E,transparent)",boxShadow:"0 0 20px 4px rgba(212,175,110,0.6)",animation:"sb 1.8s ease-in-out infinite"}}/>
+            </div>
+            {[1,2].map(function(i) { return <div key={i} style={{position:"absolute",inset:-(i*14),borderRadius:"50%",border:"1px solid rgba(212,175,110," + (0.3/i) + ")",animation:"sp 2s ease-out " + (i*0.4) + "s infinite"}}/>; })}
+          </div>
+          <div style={{marginBottom:20}}>
+            <div style={{height:2,background:"rgba(255,255,255,0.06)",borderRadius:1,overflow:"hidden",marginBottom:9}}>
+              <div style={{height:"100%",borderRadius:1,background:"linear-gradient(90deg," + T.gold + "," + T.goldHi + ")",width:scanProgress + "%",transition:"width 0.5s ease"}}/>
+            </div>
+            <p style={{fontSize:11,color:T.textMid,letterSpacing:"0.1em",minHeight:18}}>{stages[scanStage]}</p>
+          </div>
+          <Card style={{padding:"16px 20px"}}>
+            {[["Skin depth", scanProgress > 18 ? depthLabel(skinPos) : null],
+              ["Undertone", scanProgress > 36 ? undertoneLabel(skinPos).split("/")[0].trim() : null],
+              ["Spectral Match", scanProgress > 55 ? skinHex.toUpperCase() : null],
+              ["Hydration", scanProgress > 72 ? skinMetrics.hydration + "%" : null],
+              ["Sensitivity", scanProgress > 88 ? (skinMetrics.sensitivity > 55 ? "Elevated" : "Normal") : null],
+              ["Routine steps", scanProgress >= 100 ? String(routine.morning.length + routine.evening.length + routine.weekly.length) : "\u2014"]
+            ].map(function(item) {
+              var l = item[0], v = item[1];
+              return (
+                <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
+                  <span style={{fontSize:11,color:T.textLow}}>{l}</span>
+                  <span style={{fontSize:11,color:v ? T.gold : "rgba(255,255,255,0.1)",transition:"color 0.4s",fontWeight:v ? 500 : 300}}>{v || "\u2014"}</span>
+                </div>
+              );
+            })}
+          </Card>
+        </div>
+      </Shell>
+    );
+  }
+
+  // ── APP DOWNLOAD SCREEN ───────────────────────────────────────────────────
+  if (phase === "appDownload") return (
+    <Shell>
+      <div style={{textAlign:"center",maxWidth:400}}>
+        <div style={{width:64,height:64,borderRadius:"50%",background:"linear-gradient(135deg," + T.gold + "," + T.goldHi + ")",margin:"0 auto 20px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>{"\uD83D\uDCF1"}</div>
+        <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:400,marginBottom:8}}>Take your results with you</h2>
+        <p style={{fontSize:13,color:T.textMid,marginBottom:32,lineHeight:1.7}}>Download the NOOR app to access your full personalised routine, track your skin progress, and get restock reminders {"\u2014"} all pre-loaded with today's results.</p>
+
+        <div style={{display:"inline-flex",flexDirection:"column",alignItems:"center",background:"rgba(255,255,255,0.04)",border:"1px solid " + T.border,borderRadius:16,padding:"24px",marginBottom:28}}>
+          <QRCode/>
+          <p style={{fontSize:10,letterSpacing:"0.2em",color:T.textMid,marginTop:12,textTransform:"uppercase"}}>Scan to download NOOR</p>
+          <div style={{display:"flex",gap:8,marginTop:10}}>
+            <span style={{fontSize:9,padding:"3px 10px",borderRadius:10,background:"rgba(255,255,255,0.06)",color:T.textLow}}>App Store</span>
+            <span style={{fontSize:9,padding:"3px 10px",borderRadius:10,background:"rgba(255,255,255,0.06)",color:T.textLow}}>Google Play</span>
+          </div>
+        </div>
+
+        <Card style={{padding:"18px 20px",marginBottom:24,textAlign:"left"}}>
+          <p style={{fontSize:10,letterSpacing:"0.2em",color:T.textLow,textTransform:"uppercase",marginBottom:12}}>In the NOOR app</p>
+          {[
+            ["\uD83D\uDCCA","Your full skin report saved","Metrics, skin type, undertone"],
+            ["\uD83D\uDEC1","Complete personalised routine","Morning, evening & weekly steps"],
+            ["\uD83D\uDECD","Product wishlist & price alerts","AED prices available"],
+            ["\uD83D\uDCC8","Skin progress tracking","Rescan every 4 weeks"],
+            ["\uD83C\uDF81","Exclusive beauty offers","Industry partner integration"],
+          ].map(function(item) {
+            return (
+              <div key={item[1]} style={{display:"flex",gap:10,marginBottom:10}}>
+                <span style={{fontSize:16,flexShrink:0}}>{item[0]}</span>
+                <div>
+                  <p style={{fontSize:12,fontWeight:500,color:T.text,marginBottom:1}}>{item[1]}</p>
+                  <p style={{fontSize:10,color:T.textLow}}>{item[2]}</p>
+                </div>
+              </div>
+            );
+          })}
+        </Card>
+
+        <p style={{fontSize:11,color:T.textMid,marginBottom:10}}>Or send results to your email</p>
+        <div style={{display:"flex",gap:8,marginBottom:28}}>
+          <input value={email} onChange={function(e){setEmail(e.target.value);}} placeholder="your@email.com" style={{flex:1,background:"rgba(255,255,255,0.05)",border:"1px solid " + T.border,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.text,fontFamily:"'DM Sans',sans-serif"}}/>
+          <GoldBtn onClick={function(){setEmailSent(true);}} style={{padding:"10px 18px",fontSize:10}}>{emailSent ? "Sent \u2713" : "Send"}</GoldBtn>
+        </div>
+
+        <div style={{display:"flex",gap:10}}>
+          <GoldBtn ghost onClick={function(){setPhase("results");}} style={{flex:1}}>{"← Back to Results"}</GoldBtn>
+          <GoldBtn onClick={function(){setPhase("welcome");setFilters({halal:false,vegan:false,crueltyFree:false});}} style={{flex:1}}>New Scan</GoldBtn>
+        </div>
+        <p style={{fontSize:9,color:T.textLow,marginTop:18,letterSpacing:"0.15em"}}>NOOR AI {"\u00B7"} YOUR DATA IS PRIVATE & NEVER SHARED</p>
+      </div>
+    </Shell>
+  );
+
+  // ── RESULTS ───────────────────────────────────────────────────────────────
+  var currentRoutineSteps = routineSection === "morning" ? routine.morning : routineSection === "evening" ? routine.evening : routine.weekly;
+
+  return (
+    <Shell center={false} maxW={600}>
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+        <button onClick={function(){setPhase("assess");}} style={{display:"flex",alignItems:"center",gap:6,background:"transparent",border:"none",cursor:"pointer",color:T.textMid,fontFamily:"'DM Sans',sans-serif",fontSize:12,padding:"6px 0"}}>
+          <span style={{fontSize:16}}>{"←"}</span> Back
+        </button>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:40,height:40,borderRadius:"50%",background:skinHex,boxShadow:"0 4px 16px " + skinHex + "60,0 0 0 2px rgba(212,175,110,0.2)"}}/>
+          <p style={{fontSize:10,letterSpacing:"0.2em",color:T.textLow,textTransform:"uppercase"}}>NOOR</p>
+        </div>
+        <GoldBtn ghost onClick={function(){setPhase("appDownload");}} style={{fontSize:9,padding:"6px 14px"}}>{"\uD83D\uDCF1"} Save</GoldBtn>
+      </div>
+
+      {/* Section title */}
+      <p style={{fontSize:10,letterSpacing:"0.3em",color:T.textLow,textTransform:"uppercase",marginBottom:14}}>
+        {activeTab === "overview" ? "Skin Overview" : activeTab === "routine" ? "Full Routine" : "Foundation Matching"}
+      </p>
+
+      {/* Filters */}
+      <div style={{display:"flex",gap:7,marginBottom:16,flexWrap:"wrap"}}>
+        <FilterPill label={"\u2726 Halal Only"} active={filters.halal} onClick={function(){toggleFilter("halal");}} colour="halal"/>
+        <FilterPill label="Vegan" active={filters.vegan} onClick={function(){toggleFilter("vegan");}} colour="vegan"/>
+        <FilterPill label="Cruelty-Free" active={filters.crueltyFree} onClick={function(){toggleFilter("crueltyFree");}} colour="crueltyFree"/>
+      </div>
+
+      {/* ── SKIN OVERVIEW ────────────────────────────────────────────────────── */}
+      {activeTab === "overview" && (
+        <div>
+          <Card style={{padding:"22px",marginBottom:14,background:"linear-gradient(135deg,rgba(200,168,76,0.08),rgba(200,168,76,0.02))"}}>
+            <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16}}>
+              <div style={{width:56,height:56,borderRadius:"50%",background:skinHex,flexShrink:0,boxShadow:"0 6px 20px " + skinHex + "60,0 0 0 3px rgba(212,175,110,0.25)"}}/>
+              <div>
+                <p style={{fontSize:10,letterSpacing:"0.25em",color:T.textLow,textTransform:"uppercase",marginBottom:4}}>Skin Profile</p>
+                <p style={{fontFamily:"'Playfair Display',serif",fontSize:22,color:T.goldHi,fontWeight:400,marginBottom:2}}>
+                  {skinTypes.join(" \u00B7 ")}
+                </p>
+                <p style={{fontSize:11,color:T.textMid}}>{depthLabel(skinPos)} {"\u00B7"} {undertoneLabel(skinPos)} {"\u00B7"} {skinHex.toUpperCase()}</p>
+              </div>
+            </div>
+            {activeConcerns.length > 0 && (
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {activeConcerns.map(function(c) { return (
+                  <span key={c} style={{fontSize:10,padding:"3px 10px",borderRadius:10,background:"rgba(200,168,76,0.15)",color:T.goldHi,border:"1px solid rgba(212,175,110,0.25)",textTransform:"capitalize"}}>{c}</span>
+                ); })}
+              </div>
+            )}
+          </Card>
+
+          <Card style={{padding:"22px",marginBottom:14}}>
+            <p style={{fontSize:10,letterSpacing:"0.28em",color:T.textLow,textTransform:"uppercase",marginBottom:20}}>Skin Quality Index</p>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"20px 8px"}}>
+              <MetricGauge label="Hydration" value={skinMetrics.hydration} colour="#7AAED4" icon={"\uD83D\uDCA7"}/>
+              <MetricGauge label="Oiliness" value={skinMetrics.oiliness} colour="#D4B84C" icon={"\u2726"}/>
+              <MetricGauge label="Sensitivity" value={skinMetrics.sensitivity} colour="#D47A9E" icon={"\u25CB"}/>
+              <MetricGauge label="Pigmentation" value={skinMetrics.pigmentation} colour="#D4A04C" icon={"\u25C8"}/>
+              <MetricGauge label="Pore Size" value={skinMetrics.pores} colour="#9A7AD4" icon={"\u25C7"}/>
+              <MetricGauge label="Firmness" value={skinMetrics.firmness} colour="#6BBF8A" icon={"\u2191"}/>
+            </div>
+          </Card>
+
+          <Card style={{padding:"16px 18px",marginBottom:14,background:"rgba(200,168,76,0.05)"}}>
+            <p style={{fontSize:10,letterSpacing:"0.2em",color:T.gold,marginBottom:8}}>NOOR INSIGHT</p>
+            <p style={{fontSize:13,color:T.textMid,lineHeight:1.7}}>
+              {skinMetrics.oiliness > 65 && skinMetrics.sensitivity > 50
+                ? "Your skin is oily-sensitive \u2014 avoid heavy oils and alcohol-based products. Look for non-comedogenic, fragrance-free formulas."
+                : skinMetrics.hydration < 40 && skinMetrics.oiliness < 40
+                ? "Dry skin needs barrier support \u2014 layer a hydrating serum under a rich cream, and never skip SPF."
+                : skinMetrics.pigmentation > 60
+                ? "Elevated pigmentation index. Niacinamide, Vitamin C, and SPF 50+ daily will deliver the most visible improvement."
+                : "Your skin metrics are well-balanced. Focus on maintaining your barrier and protecting with broad-spectrum SPF daily."}
+            </p>
+          </Card>
+
+          <GoldBtn onClick={function(){setActiveTab("routine");}} style={{width:"100%"}}>
+            {"View Your Full Routine →"}
+          </GoldBtn>
+        </div>
+      )}
+
+      {/* ── FULL ROUTINE ─────────────────────────────────────────────────── */}
+      {activeTab === "routine" && (
+        <div>
+          <Card style={{padding:"14px 18px",marginBottom:14,background:"rgba(200,168,76,0.04)"}}>
+            <p style={{fontSize:10,letterSpacing:"0.2em",color:T.gold,marginBottom:4}}>YOUR PERSONALISED ROUTINE</p>
+            <p style={{fontSize:12,color:T.textMid,lineHeight:1.6}}>
+              Optimised for <strong style={{color:T.text}}>{skinTypes[0]}</strong> skin
+              {activeConcerns.length > 0 && <span> targeting <strong style={{color:T.text}}>{activeConcerns.slice(0,3).join(", ")}</strong></span>}.
+              Tap any product to expand.
+            </p>
+          </Card>
+
+          <div style={{display:"flex",gap:6,marginBottom:16}}>
+            {[["morning","\u2600 Morning"],["evening","\uD83C\uDF19 Evening"],["weekly","\u25C7 Weekly"]].map(function(item) {
+              var k = item[0], l = item[1];
+              return (
+                <button key={k} onClick={function(){setRoutineSection(k);}} style={{flex:1,padding:"9px 4px",borderRadius:10,fontSize:11,fontWeight:500,cursor:"pointer",transition:"all 0.2s",background:routineSection===k?"rgba(200,168,76,0.15)":"rgba(255,255,255,0.03)",border:"1px solid " + (routineSection===k?T.borderHi:T.border),color:routineSection===k?T.goldHi:T.textMid,fontFamily:"'DM Sans',sans-serif"}}>{l}</button>
+              );
+            })}
+          </div>
+
+          {currentRoutineSteps.map(function(s, i) {
+            return <RoutineStep key={i} step={s.step} icon={s.icon} note={s.note} products={s.products} filters={filters}/>;
+          })}
+        </div>
+      )}
+
+      {/* ── FOUNDATION ───────────────────────────────────────────────────── */}
+      {activeTab === "foundation" && (
+        <div>
+          {filters.halal && (
+            <Card style={{padding:"14px 18px",marginBottom:12,background:"rgba(180,140,60,0.07)",borderColor:"rgba(212,175,110,0.3)"}}>
+              <p style={{fontSize:10,letterSpacing:"0.15em",color:T.gold,marginBottom:4}}>MARKET INSIGHT</p>
+              <p style={{fontSize:12,color:"#D8C8A8",lineHeight:1.6}}><strong style={{color:T.goldHi}}>Limited prestige options</strong> with halal certification in beauty. GCC market: <strong style={{color:T.goldHi}}>USD 1.2B by 2026</strong>. Emerging brands prioritising certification {"\u2014"} check product pages for latest status.</p>
+            </Card>
+          )}
+          <Card style={{padding:"14px 18px",marginBottom:12,background:"rgba(200,168,76,0.04)"}}>
+            <p style={{fontSize:10,letterSpacing:"0.2em",color:T.gold,marginBottom:4}}>SMART MATCHING</p>
+            <p style={{fontSize:12,color:T.textMid,lineHeight:1.6}}>
+              Ranked by <strong style={{color:T.text}}>70% shade accuracy + 30% skin compatibility</strong> for your <strong style={{color:T.text}}>{skinTypes[0]}</strong> skin profile.
+              {skinMetrics.oiliness > 55 ? " Mattifying finishes prioritised." : skinMetrics.hydration < 45 ? " Hydrating finishes prioritised." : ""}
+            </p>
+          </Card>
+          <p style={{fontSize:10,letterSpacing:"0.2em",color:T.textLow,marginBottom:12,textTransform:"uppercase"}}>{foundationMatches.length} matches {"\u00B7"} {depthLabel(skinPos)} {"\u00B7"} {undertoneLabel(skinPos)}</p>
+          {foundationMatches.length === 0
+            ? <Card style={{padding:"28px",textAlign:"center"}}><p style={{color:T.textMid}}>No matches with selected filters.</p></Card>
+            : foundationMatches.map(function(p) { return <ProductCard key={p.id} p={p} filters={filters} foundationHex={p.hex}/>; })
+          }
+        </div>
+      )}
+
+      {/* ── BOTTOM NAV ──────────────────────────────────────────────────── */}
+      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:"100vw",background:"rgba(10,9,7,0.97)",backdropFilter:"blur(20px)",borderTop:"1px solid " + T.border,zIndex:100}}>
+        <div style={{display:"flex",maxWidth:600,margin:"0 auto"}}>
+          {[{key:"overview",icon:"\u25C8",label:"Skin"},{key:"routine",icon:"\u2600",label:"Routine"},{key:"foundation",icon:"\u25CB",label:"Foundation"},{key:"__app",icon:"\uD83D\uDCF1",label:"Save"}]
+          .map(function(t) {
+            return (
+              <button key={t.key} onClick={function(){if(t.key==="__app")setPhase("appDownload");else setActiveTab(t.key);}}
+                style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,padding:"12px 4px 10px",background:"transparent",border:"none",cursor:"pointer",transition:"all 0.2s",borderTop:"2px solid " + (activeTab===t.key && t.key!=="__app" ? T.gold : "transparent")}}>
+                <span style={{fontSize:16,lineHeight:1}}>{t.icon}</span>
+                <span style={{fontSize:9,letterSpacing:"0.08em",color:activeTab===t.key && t.key!=="__app" ? T.gold : T.textMid,fontWeight:activeTab===t.key && t.key!=="__app" ? 600 : 400,fontFamily:"'DM Sans',sans-serif",textTransform:"uppercase"}}>{t.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </Shell>
+  );
+}
+
+var root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(React.createElement(NoorApp));
+  </script>
+</body>
+</html>
